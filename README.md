@@ -4,7 +4,13 @@ Exploration implementing reinforcement learning in [Flappy Bird](https://en.wiki
 
 ## Results
 
+## Getting Started
 
+Added modules:
+- [flappy_rl.py](flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
+- [q_learning.py](q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
+
+Select whether to train or simply run the trained agent by changing the `train` variable in [flappy_rl.py](flappy_rl.py) to `True` or `False`, then run the module.
 
 ## Forked From [FlapPyBird](https://github.com/sourabhv/FlapPyBird)
 
