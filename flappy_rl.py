@@ -4,14 +4,19 @@ import sys
 import pygame
 from pygame.locals import *
 
-# Include Agent
+# Initialize Q-learning agent
 
 from q_learning import QLearning
+from config import config
 
-train = True
-Agent = QLearning(train)
+Agent = QLearning(config['train'])
 
-# Back to Game
+if Agent.train:
+    print("Training agent...")
+else:
+    print("Running agent...")
+
+# Back to game
 
 FPS = 30
 SCREENWIDTH = 288
@@ -169,7 +174,6 @@ def showWelcomeAnimation():
     # while True:
     #     for event in pygame.event.get():
     #         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-    #             Agent.save_qvalues(force_save=True)
     #             pygame.quit()
     #             sys.exit()
     #         if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
@@ -250,9 +254,8 @@ def mainGame(movementInfo):
     while True:
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-                if train:
-                    Agent.save_qvalues()
-                    Agent.save_training_states()
+                Agent.save_qvalues()
+                Agent.save_training_states()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
@@ -281,8 +284,11 @@ def mainGame(movementInfo):
                                upperPipes, lowerPipes)
         if crashTest[0]:
             Agent.update_qvalues(score)
-            print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
-                  f"score: {score}, max_score: {max(Agent.scores)}")
+            if Agent.train:
+                print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
+                      f"score: {score}, max_score: {max(Agent.scores)}")
+            else:
+                print(f"Episode: {Agent.episode}, score: {score}, max_score: {max(Agent.scores)}")
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
@@ -302,6 +308,9 @@ def mainGame(movementInfo):
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
                 # SOUNDS['point'].play()
+                if config['max_score'] and score >= config['max_score']:
+                    Agent.end_episode()
+                    print(f"Max score of {config['max_score']} reached at episode {Agent.episode}...")
 
         # playerIndex basex change
         if (loopIter + 1) % 3 == 0:
@@ -365,7 +374,7 @@ def mainGame(movementInfo):
 
 
 def showGameOverScreen(crashInfo):
-    """crashes the player down ans shows gameover image"""
+    """Crashes the player down and shows gameover image"""
     score = crashInfo['score']
     playerx = SCREENWIDTH * 0.2
     playery = crashInfo['y']
@@ -387,9 +396,8 @@ def showGameOverScreen(crashInfo):
     while True:
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-                if train:
-                    Agent.save_qvalues()
-                    Agent.save_training_states()
+                Agent.save_qvalues()
+                Agent.save_training_states()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
@@ -442,7 +450,7 @@ def showGameOverScreen(crashInfo):
 
 
 def getRandomPipe():
-    """returns a randomly generated pipe"""
+    """Returns a randomly generated pipe"""
     # y of gap between upper and lower pipe
     gapY = random.randrange(0, int(BASEY * 0.6 - PIPEGAPSIZE))
     gapY += int(BASEY * 0.2)
@@ -456,7 +464,7 @@ def getRandomPipe():
 
 
 def showScore(score):
-    """displays score in center of screen"""
+    """Displays score in center of screen"""
     scoreDigits = [int(x) for x in list(str(score))]
     totalWidth = 0  # total width of all numbers to be printed
 
@@ -471,7 +479,7 @@ def showScore(score):
 
 
 def checkCrash(player, upperPipes, lowerPipes):
-    """returns True if player collders with base or pipes."""
+    """Returns True if player collders with base or pipes."""
     pi = player['index']
     player['w'] = IMAGES['player'][0].get_width()
     player['h'] = IMAGES['player'][0].get_height()
@@ -524,7 +532,7 @@ def pixelCollision(rect1, rect2, hitmask1, hitmask2):
 
 
 def getHitmask(image):
-    """returns a hitmask using an image's alpha."""
+    """Returns a hitmask using an image's alpha."""
     mask = []
     for x in xrange(image.get_width()):
         mask.append([])
@@ -536,8 +544,5 @@ def getHitmask(image):
 if __name__ == '__main__':
     main()
 
-# TODO: Test without training
-# TODO: Stop if reaches max score we want to check
 # TODO: Resume game from death for rare scenarios
-# TODO: Update q-table every million steps to reduce in-memory usage
-# TODO: Add training without UI and training without printing
+# TODO: Add training without rendering and training without printing

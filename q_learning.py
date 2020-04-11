@@ -55,14 +55,15 @@ class QLearning:
 
     def load_training_states(self):
         """Load current training state from json file."""
-        print("Loading training states from json file...")
-        try:
-            with open("data/training_values.json", "r") as f:
-                training_state = json.load(f)
-                self.episode = training_state['episodes'][-1]
-                self.scores = training_state['scores']
-        except IOError:
-            pass
+        if self.train:
+            print("Loading training states from json file...")
+            try:
+                with open("data/training_values.json", "r") as f:
+                    training_state = json.load(f)
+                    self.episode = training_state['episodes'][-1]
+                    self.scores = training_state['scores']
+            except IOError:
+                pass
 
     def act(self, x, y, vel, pipe):
         """
@@ -77,6 +78,7 @@ class QLearning:
         state = self.get_state(x, y, vel, pipe)
         if self.train:
             self.moves.append((self.previous_state, self.previous_action, state))  # add the experience to history
+            self.reduce_moves()
             self.previous_state = state  # update the last_state with the current state
 
         # Best action with respect to current state, default is 0 (do nothing), 1 is flap
@@ -85,7 +87,11 @@ class QLearning:
         return self.previous_action
 
     def update_qvalues(self, score):
-        """Update q values using history."""
+        """
+        Update q values using history.
+        :param score: score for this episode
+        :return: None
+        """
         self.episode += 1
         self.scores.append(score)
 
@@ -122,6 +128,8 @@ class QLearning:
             if self.epsilon > 0:
                 self.epsilon -= self.epsilon_decay
 
+            # Don't need to reset previous action or state since this doesn't matter for all the beginning states
+            # Although wikipedia mentions a reset of initial conditions tends to predict human behaviour more accurately
             self.moves = []  # clear history after updating strategies
 
     def get_state(self, x, y, vel, pipe):
@@ -170,15 +178,45 @@ class QLearning:
         self.init_qvalues(state)
         return state
 
+    def reduce_moves(self, reduce_len=1000000):
+        """
+        Reduce length of moves if greater than reduce_len.
+        :param reduce_len: reduce moves in memory if greater than this length, default 1 million
+        :return: None
+        """
+        if len(self.moves) > reduce_len:
+            history = list(reversed(self.moves[:reduce_len]))
+            for move in history:
+                state, action, new_state = move
+                # Save q_values with default of 0 reward (bird not yet died)
+                self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
+                                               self.alpha * (self.reward[0] + self.discount_factor *
+                                                             max(self.q_values[new_state][0:2]))
+            self.moves = self.moves[reduce_len:]
+
+    def end_episode(self):
+        """End the run for this episode."""
+        self.episode += 1
+        history = list(reversed(self.moves))
+        for move in history:
+            state, action, new_state = move
+            # Save q_values with default of 0 reward (bird not yet died)
+            self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
+                                           self.alpha * (self.reward[0] + self.discount_factor *
+                                                         max(self.q_values[new_state][0:2]))
+        self.moves = []
+
     def save_qvalues(self):
         """Save q values to json file."""
-        print(f"Saving Q-table with {len(self.q_values.keys())} states to file...")
-        with open("data/q_values.json", "w") as f:
-            json.dump(self.q_values, f)
+        if self.train:
+            print(f"Saving Q-table with {len(self.q_values.keys())} states to file...")
+            with open("data/q_values.json", "w") as f:
+                json.dump(self.q_values, f)
 
     def save_training_states(self):
-        """Save current training state to json file."""
-        print(f"Saving training states with {self.episode} episodes to file...")
-        with open("data/training_values.json", "w") as f:
-            json.dump({'episodes': [i+1 for i in range(self.episode)],
-                       'scores': self.scores}, f)
+        if self.train:
+            """Save current training state to json file."""
+            print(f"Saving training states with {self.episode} episodes to file...")
+            with open("data/training_values.json", "w") as f:
+                json.dump({'episodes': [i+1 for i in range(self.episode)],
+                           'scores': self.scores}, f)
