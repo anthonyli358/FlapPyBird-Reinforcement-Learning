@@ -7,10 +7,11 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 ## Getting Started
 
 Added modules:
+- [config.py](config.py) Config file for changing the agent training parameters
 - [flappy_rl.py](flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
 - [q_learning.py](q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
 
-Select whether to train or run the trained agent by changing the `train` variable at the top of [flappy_rl.py](flappy_rl.py) to `True` or `False`, then run the module.
+Change the training parameters in [config.py](config.py) and run the [flappy_rl.py](flappy_rl.py) module.
 
 ## Forked From [FlapPyBird](https://github.com/sourabhv/FlapPyBird)
 

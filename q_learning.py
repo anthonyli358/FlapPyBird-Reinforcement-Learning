@@ -29,6 +29,7 @@ class QLearning:
         self.previous_state = "0_0_0_0"  # initial position (x0, y0, vel, y1)
         self.moves = []
         self.scores = []
+        self.max_score = 0
 
         # Load states, add states to q-table as they are experienced rather than pre-initializing q-table
         self.q_values = {}  # q-table[state][action] decides which action to take by comparing q-values
@@ -62,6 +63,7 @@ class QLearning:
                     self.episode = training_state['episodes'][-1]
                     self.scores = training_state['scores']
                     self.epsilon -= self.epsilon_decay * self.episode
+                    self.max_score = max(self.scores)
             except IOError:
                 pass
 
@@ -93,6 +95,7 @@ class QLearning:
         """
         self.episode += 1
         self.scores.append(score)
+        self.max_score = max(score, self.max_score)
 
         if self.train:
             history = list(reversed(self.moves))
@@ -195,14 +198,15 @@ class QLearning:
     def end_episode(self):
         """End the run for this episode."""
         self.episode += 1
-        history = list(reversed(self.moves))
-        for move in history:
-            state, action, new_state = move
-            # Save q_values with default of 0 reward (bird not yet died)
-            self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
-                                           self.alpha * (self.reward[0] + self.discount_factor *
-                                                         max(self.q_values[new_state][0:2]))
-        self.moves = []
+        if self.train:
+            history = list(reversed(self.moves))
+            for move in history:
+                state, action, new_state = move
+                # Save q_values with default of 0 reward (bird not yet died)
+                self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
+                                               self.alpha * (self.reward[0] + self.discount_factor *
+                                                             max(self.q_values[new_state][0:2]))
+            self.moves = []
 
     def save_qvalues(self):
         """Save q values to json file."""

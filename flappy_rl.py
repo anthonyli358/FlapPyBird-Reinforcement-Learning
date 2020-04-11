@@ -31,7 +31,6 @@ BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=50)
-PREVIOUS_SCORE = 0
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -305,9 +304,9 @@ def mainGame(movementInfo):
             Agent.update_qvalues(score)
             if Agent.train:
                 print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
-                      f"score: {score}, max_score: {max(Agent.scores)}")
+                      f"score: {score}, max_score: {Agent.max_score}")
             else:
-                print(f"Episode: {Agent.episode}, score: {score}, max_score: {max(Agent.scores)}")
+                print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
             # Managed to pass the difficult pipe, but actually we want to keep trying if past the config['resume_score']
             # if score > current_score:
             #     STATE_HISTORY.clear()
