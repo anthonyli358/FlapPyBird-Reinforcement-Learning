@@ -1,6 +1,4 @@
 import json
-import os
-import random
 
 
 class QLearning:
@@ -23,26 +21,37 @@ class QLearning:
 
         # Stabilize and converge to optimal policy
         self.alpha_decay = 0.00001
-        self.epsilon_decay = 0.00001
+        self.epsilon_decay = 0.00001  # 1 million episodes to not explore anymore
 
         # Save states
         self.episode = 0
         self.previous_action = 0
         self.previous_state = "0_0_0_0"  # initial position (x0, y0, vel, y1)
         self.moves = []
+        self.scores = []
 
-        # Q values
-        self.q_values = {}
+        # Load states
+        self.q_values = {}  # q-table[state][action] decides which action to take by comparing q-values
         self.load_qvalues()
+        self.load_training_states()
+
+    def load_training_states(self):
+        """Load current training state from json file."""
+        try:
+            with open("data/training_values.json", "r") as f:
+                training_state = json.load(f)
+                self.episode = training_state['episodes'][-1]
+                self.scores = training_state['scores']
+        except IOError:
+            pass
 
     def load_qvalues(self):
-        """Load q values from json file."""
+        """Load q values and from json file."""
         try:
             with open("data/q_values.json", "r") as f:
                 self.q_values = json.load(f)
         except IOError:
             self.init_qvalues(self.previous_state)
-        return
 
     def init_qvalues(self, state):
         """
@@ -51,7 +60,7 @@ class QLearning:
         :return: None
         """
         if self.q_values.get(state) is None:
-            self.q_values[state] = [0, 0, 0]  # [Q of no action, Q of flap action, Number]
+            self.q_values[state] = [0, 0, 0]  # [Q of no action, Q of flap action, Number of actions]
 
     def act(self, x, y, vel, pipe):
         """
@@ -68,7 +77,7 @@ class QLearning:
             self.moves.append((self.previous_state, self.previous_action, state))  # add the experience to history
             self.previous_state = state  # update the last_state with the current state
 
-        # Best action with respect to current state
+        # Best action with respect to current state, do nothing is the default
         self.previous_action = 0 if self.q_values[state][0] >= self.q_values[state][1] else 1
 
         return self.previous_action
@@ -76,6 +85,7 @@ class QLearning:
     def update_qvalues(self, score):
         """Update q values using history."""
         self.episode += 1
+        self.scores.append(score)
 
         if self.train:
             history = list(reversed(self.moves))
@@ -85,7 +95,7 @@ class QLearning:
             for move in history:
                 t += 1
                 state, action, new_state = move
-                self.q_values[state][2] += 1
+                self.q_values[state][2] += 1  # make 1 more move
                 curr_reward = self.reward[0]
                 # Select reward
                 if t <= 2:
@@ -165,4 +175,10 @@ class QLearning:
             json.dump(self.q_values, f)
         print("Done.")
 
-# TODO: Save episode and score for results analysis
+    def save_training_states(self):
+        """Save current training state to json file."""
+        print(f"Saving training states with {self.episode} episodes to file...")
+        with open("data/training_values.json", "w") as f:
+            json.dump({'episodes': [i+1 for i in range(self.episode)],
+                       'scores': self.scores}, f)
+        print("Done.")

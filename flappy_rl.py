@@ -179,6 +179,7 @@ def mainGame(movementInfo):
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 if train:
                     Agent.save_qvalues()
+                    Agent.save_training_states()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
@@ -206,10 +207,8 @@ def mainGame(movementInfo):
                                upperPipes, lowerPipes)
         if crashTest[0]:
             Agent.update_qvalues(score)
-            agent_scores.append(score)
             print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
-                  f"score: {score}, max_score: {max(agent_scores)}")
-
+                  f"score: {score}, max_score: {max(Agent.scores)}")
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
@@ -296,6 +295,7 @@ def showGameOverScreen(crashInfo):
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 if train:
                     Agent.save_qvalues()
+                    Agent.save_training_states()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
