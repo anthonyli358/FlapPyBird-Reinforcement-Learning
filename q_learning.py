@@ -5,8 +5,8 @@ class QLearning:
     """
     A Q-Learning agent.
 
-    Load the Q-Learning agent from a file (data/q_values.json by default).
-    To train a new agent specify a new file.
+    Load the Q-Learning agent Q-table (data/q_values.json) and training states (data/training_values.json) from file .
+    To train a new agent specify new file names to load and save to.
     """
     def __init__(self, train):
         """
@@ -21,7 +21,7 @@ class QLearning:
 
         # Stabilize and converge to optimal policy
         self.alpha_decay = 0.000001
-        self.epsilon_decay = 0.000001  # 100,000 to not explore anymore
+        self.epsilon_decay = 0.000001  # 100,000 episodes to not explore anymore
 
         # Save states
         self.episode = 0
@@ -103,7 +103,7 @@ class QLearning:
             for move in history:
                 t += 1
                 state, action, new_state = move
-                self.q_values[state][2] += 1  # make 1 more move as the state is seen again
+                self.q_values[state][2] += 1  # number of times this state has been seen
                 curr_reward = self.reward[0]
                 # Select reward
                 if t <= 2:

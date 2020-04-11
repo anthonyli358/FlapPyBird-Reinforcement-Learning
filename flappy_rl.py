@@ -264,16 +264,7 @@ def mainGame(movementInfo):
                     playerFlapped = True
                     # SOUNDS['wing'].play()
 
-        # calculate the data
-        xdist_pipe = lowerPipes[0]['x'] - playerx + 30
-        if xdist_pipe > 0:
-            PipeNo = 0
-        else:
-            PipeNo = 1
-        x_dist_lpipe = lowerPipes[PipeNo]['x'] - playerx
-        y_dist_lpipe = lowerPipes[PipeNo]['y'] - playery
-
-        # feed parameters to agent which in turn returns action
+        # Agent to perform an action
         if Agent.act(playerx, playery, playerVelY, lowerPipes):
             if playery > -2 * IMAGES['player'][0].get_height():
                 playerVelY = playerFlapAcc
@@ -349,28 +340,29 @@ def mainGame(movementInfo):
             upperPipes.pop(0)
             lowerPipes.pop(0)
 
-        # draw sprites
-        SCREEN.blit(IMAGES['background'], (0, 0))
+        if config['show_game']:
+            # draw sprites
+            SCREEN.blit(IMAGES['background'], (0, 0))
 
-        for uPipe, lPipe in zip(upperPipes, lowerPipes):
-            SCREEN.blit(IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
-            SCREEN.blit(IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
+            for uPipe, lPipe in zip(upperPipes, lowerPipes):
+                SCREEN.blit(IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
+                SCREEN.blit(IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
 
-        SCREEN.blit(IMAGES['base'], (basex, BASEY))
-        # print score so player overlaps the score
-        showScore(score)
+            SCREEN.blit(IMAGES['base'], (basex, BASEY))
+            # print score so player overlaps the score
+            showScore(score)
 
-        # # Player rotation has a threshold
-        # visibleRot = playerRotThr
-        # if playerRot <= playerRotThr:
-        #     visibleRot = playerRot
-        # playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
+            # # Player rotation has a threshold
+            # visibleRot = playerRotThr
+            # if playerRot <= playerRotThr:
+            #     visibleRot = playerRot
+            # playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
 
-        playerSurface = IMAGES['player'][playerIndex]
-        SCREEN.blit(playerSurface, (playerx, playery))
+            playerSurface = IMAGES['player'][playerIndex]
+            SCREEN.blit(playerSurface, (playerx, playery))
 
-        pygame.display.update()
-        FPSCLOCK.tick(FPS)
+            pygame.display.update()
+            FPSCLOCK.tick(FPS)
 
 
 def showGameOverScreen(crashInfo):
@@ -545,4 +537,3 @@ if __name__ == '__main__':
     main()
 
 # TODO: Resume game from death for rare scenarios
-# TODO: Add training without rendering and training without printing
