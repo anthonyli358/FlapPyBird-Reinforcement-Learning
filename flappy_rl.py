@@ -1,8 +1,11 @@
 from itertools import cycle
+from collections import deque
+import copy
 import random
 import sys
 import pygame
 from pygame.locals import *
+
 
 # Initialize Q-learning agent
 
@@ -16,6 +19,7 @@ if Agent.train:
 else:
     print("Running agent...")
 
+
 # Back to game
 
 FPS = 30
@@ -26,6 +30,8 @@ PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
 BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
+STATE_HISTORY = deque(maxlen=50)
+PREVIOUS_SCORE = 0
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -251,7 +257,29 @@ def mainGame(movementInfo):
     playerFlapAcc = -9  # players speed on flapping
     playerFlapped = False  # True when player flaps
 
+    # When starting the game, if we have state history to resume from then use it until it passes that pipe
+    # If history is less than 20 frames this isn't enough for the bird to learn from (loop of dying) so clear the queue
+    if len(STATE_HISTORY) < 20:
+        STATE_HISTORY.clear()
+    resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
+    resume_from = 0
+    # current_score = max(score, config['resume_score'])  # don't reset if less than config score
+
     while True:
+        # Save game history for resuming if finished loading from previous failed attempt
+        if resume_from >= initial_len_history:
+            if score >= config['resume_score']:
+                STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
+                                      copy.deepcopy(upperPipes), score, playerIndex])
+        else:
+            if resume_from_history:
+                if resume_from == 0:
+                    playerx, playery, playerVelY, lowerPipes, upperPipes, score, playerIndex = \
+                        STATE_HISTORY[resume_from]
+                else:
+                    lowerPipes, upperPipes = STATE_HISTORY[resume_from][3], STATE_HISTORY[resume_from][4]
+                resume_from += 1
+
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 Agent.save_qvalues()
@@ -264,7 +292,7 @@ def mainGame(movementInfo):
                     playerFlapped = True
                     # SOUNDS['wing'].play()
 
-        # Agent to perform an action
+        # Agent to perform an action (0 is do nothing, 1 is flap)
         if Agent.act(playerx, playery, playerVelY, lowerPipes):
             if playery > -2 * IMAGES['player'][0].get_height():
                 playerVelY = playerFlapAcc
@@ -280,6 +308,9 @@ def mainGame(movementInfo):
                       f"score: {score}, max_score: {max(Agent.scores)}")
             else:
                 print(f"Episode: {Agent.episode}, score: {score}, max_score: {max(Agent.scores)}")
+            # Managed to pass the difficult pipe, but actually we want to keep trying if past the config['resume_score']
+            # if score > current_score:
+            #     STATE_HISTORY.clear()
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
@@ -291,7 +322,6 @@ def mainGame(movementInfo):
                 # 'playerRot': playerRot
             }
 
-        reward = 1
         # check for score
         playerMidPos = playerx + IMAGES['player'][0].get_width() / 2
         for pipe in upperPipes:
@@ -324,10 +354,11 @@ def mainGame(movementInfo):
         playerHeight = IMAGES['player'][playerIndex].get_height()
         playery += min(playerVelY, BASEY - playery - playerHeight)
 
-        # move pipes to left
-        for uPipe, lPipe in zip(upperPipes, lowerPipes):
-            uPipe['x'] += pipeVelX
-            lPipe['x'] += pipeVelX
+        # move pipes to left if done loading
+        if resume_from >= initial_len_history:
+            for uPipe, lPipe in zip(upperPipes, lowerPipes):
+                uPipe['x'] += pipeVelX
+                lPipe['x'] += pipeVelX
 
         # add new pipe when first pipe is about to touch left of screen
         if 0 < upperPipes[0]['x'] < 5:

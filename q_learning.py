@@ -20,7 +20,7 @@ class QLearning:
         self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
-        self.alpha_decay = 0.000001
+        # self.alpha_decay = 0.000001
         self.epsilon_decay = 0.000001  # 100,000 episodes to not explore anymore
 
         # Save states
@@ -48,7 +48,6 @@ class QLearning:
         """
         Initialise q values if state not yet seen.
         :param state: current state
-        :return: None
         """
         if self.q_values.get(state) is None:
             self.q_values[state] = [0, 0, 0]  # [Q of no action, Q of flap action, Times experienced this state]
@@ -62,6 +61,7 @@ class QLearning:
                     training_state = json.load(f)
                     self.episode = training_state['episodes'][-1]
                     self.scores = training_state['scores']
+                    self.epsilon -= self.epsilon_decay * self.episode
             except IOError:
                 pass
 
@@ -72,7 +72,7 @@ class QLearning:
         :param y: bird y
         :param vel: bird y velocity
         :param pipe: pipe
-        :return: action to take
+        :return: action to take (do nothing or flap)
         """
         # store the transition from previous state to current state
         state = self.get_state(x, y, vel, pipe)
@@ -90,7 +90,6 @@ class QLearning:
         """
         Update q values using history.
         :param score: score for this episode
-        :return: None
         """
         self.episode += 1
         self.scores.append(score)
@@ -182,7 +181,6 @@ class QLearning:
         """
         Reduce length of moves if greater than reduce_len.
         :param reduce_len: reduce moves in memory if greater than this length, default 1 million
-        :return: None
         """
         if len(self.moves) > reduce_len:
             history = list(reversed(self.moves[:reduce_len]))

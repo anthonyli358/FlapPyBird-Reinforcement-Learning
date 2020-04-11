@@ -1,5 +1,5 @@
 config = {'train': True,
           'show_game': False,
-          'max_score': None,
-          'resume_range': None
+          'max_score': 1000000,
+          'resume_score': 100000
           }
