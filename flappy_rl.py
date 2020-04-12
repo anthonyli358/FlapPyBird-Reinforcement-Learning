@@ -262,13 +262,13 @@ def mainGame(movementInfo):
         STATE_HISTORY.clear()
     resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
     resume_from = 0
-    # current_score = max(score, config['resume_score'])  # don't reset if less than config score
+    current_score = STATE_HISTORY[-1][5] if resume_from_history else None  # reset if beats the latest score in history
     print_score = False  # has the current score been printed?
 
     while True:
         # Save game history for resuming if finished loading from previous failed attempt
         if resume_from >= initial_len_history:
-            if score >= config['resume_score']:
+            if config['resume_score'] and score >= config['resume_score']:
                 STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
                                       copy.deepcopy(upperPipes), score, playerIndex])
         else:
@@ -307,14 +307,10 @@ def mainGame(movementInfo):
             if print_score:
                 print('')
             Agent.update_qvalues(score)
-            if Agent.train:
-                print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
-                      f"score: {score}, max_score: {Agent.max_score}")
-            else:
-                print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
-            # Managed to pass the difficult pipe, but actually we want to keep trying if past the config['resume_score']
-            # if score > current_score:
-            #     STATE_HISTORY.clear()
+            print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
+            # Managed to pass the difficult pipe
+            if resume_from_history and score > current_score:
+                STATE_HISTORY.clear()
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
