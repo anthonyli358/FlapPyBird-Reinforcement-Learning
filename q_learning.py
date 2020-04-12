@@ -1,4 +1,5 @@
 import json
+import random
 
 
 class QLearning:
@@ -16,12 +17,12 @@ class QLearning:
         self.train = train  # train or run
         self.discount_factor = 0.95  # q-learning discount factor
         self.alpha = 0.7  # learning rate
-        self.epsilon = 0.1  # chance to explore vs take local optimum
+        # self.epsilon = 0.1  # chance to explore vs take local optimum
         self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
         # self.alpha_decay = 0.000001
-        self.epsilon_decay = 0.000001  # 100,000 episodes to not explore anymore
+        # self.epsilon_decay = 0.000005  # 20,000 episodes to not explore anymore
 
         # Save states
         self.episode = 0
@@ -40,7 +41,7 @@ class QLearning:
         """Load q values and from json file."""
         print("Loading Q-table states from json file...")
         try:
-            with open("data/q_values.json", "r") as f:
+            with open("data/q_values_resume.json", "r") as f:
                 self.q_values = json.load(f)
         except IOError:
             self.init_qvalues(self.previous_state)
@@ -58,11 +59,11 @@ class QLearning:
         if self.train:
             print("Loading training states from json file...")
             try:
-                with open("data/training_values.json", "r") as f:
+                with open("data/training_values_resume.json", "r") as f:
                     training_state = json.load(f)
                     self.episode = training_state['episodes'][-1]
                     self.scores = training_state['scores']
-                    self.epsilon -= self.epsilon_decay * self.episode
+                    # self.epsilon -= min(self.epsilon_decay * self.episode, self.epsilon)
                     self.max_score = max(self.scores)
             except IOError:
                 pass
@@ -82,6 +83,11 @@ class QLearning:
             self.moves.append((self.previous_state, self.previous_action, state))  # add the experience to history
             self.reduce_moves()
             self.previous_state = state  # update the last_state with the current state
+
+            # Epsilon greedy policy for action, chance to explore
+            # if random.random() <= self.epsilon:
+            #     self.previous_action = random.choice([0, 1])
+            #     return self.previous_action
 
         # Best action with respect to current state, default is 0 (do nothing), 1 is flap
         self.previous_action = 0 if self.q_values[state][0] >= self.q_values[state][1] else 1
@@ -127,8 +133,8 @@ class QLearning:
             # Don't want to decay alpha at a fixed rate so remove for now
             # if self.alpha > 0:
             #     self.alpha -= self.alpha_decay
-            if self.epsilon > 0:
-                self.epsilon -= self.epsilon_decay
+            # if self.epsilon > 0:
+            #     self.epsilon -= self.epsilon_decay
 
             # Don't need to reset previous action or state since this doesn't matter for all the beginning states
             # Although wikipedia mentions a reset of initial conditions tends to predict human behaviour more accurately
@@ -214,13 +220,13 @@ class QLearning:
         """Save q values to json file."""
         if self.train:
             print(f"Saving Q-table with {len(self.q_values.keys())} states to file...")
-            with open("data/q_values.json", "w") as f:
+            with open("data/q_values_resume.json", "w") as f:
                 json.dump(self.q_values, f)
 
     def save_training_states(self):
         if self.train:
             """Save current training state to json file."""
             print(f"Saving training states with {self.episode} episodes to file...")
-            with open("data/training_values.json", "w") as f:
+            with open("data/training_values_resume.json", "w") as f:
                 json.dump({'episodes': [i+1 for i in range(self.episode)],
                            'scores': self.scores}, f)
