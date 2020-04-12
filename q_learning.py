@@ -195,9 +195,11 @@ class QLearning:
                                                              max(self.q_values[new_state][0:2]))
             self.moves = self.moves[reduce_len:]
 
-    def end_episode(self):
+    def end_episode(self, score):
         """End the run for this episode."""
         self.episode += 1
+        self.scores.append(score)
+        self.max_score = max(score, self.max_score)
         if self.train:
             history = list(reversed(self.moves))
             for move in history:

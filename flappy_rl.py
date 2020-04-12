@@ -282,6 +282,8 @@ def mainGame(movementInfo):
 
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                if print_score:
+                    print('')
                 Agent.save_qvalues()
                 Agent.save_training_states()
                 pygame.quit()
@@ -331,7 +333,7 @@ def mainGame(movementInfo):
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
                 # Print every 10k scores
-                if score % 10000 == 0:
+                if score % config['print_score'] == 0:
                     print_score = True  # need to start a newline before future prints
                     print(f"\r {'Training' if Agent.train else 'Running'} agent, "
                           f"score reached (nearest 10,000): {score:,}", end="")
@@ -342,7 +344,7 @@ def mainGame(movementInfo):
                 if config['max_score'] and score >= config['max_score']:
                     if print_score:
                         print('')
-                    Agent.end_episode()
+                    Agent.end_episode(score)
                     STATE_HISTORY.clear()  # don't resume if max score reached
                     print(f"Max score of {config['max_score']} reached at episode {Agent.episode}...")
                     return {
