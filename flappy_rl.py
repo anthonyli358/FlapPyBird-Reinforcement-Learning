@@ -263,6 +263,7 @@ def mainGame(movementInfo):
     resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
     resume_from = 0
     # current_score = max(score, config['resume_score'])  # don't reset if less than config score
+    print_score = False  # has the current score been printed?
 
     while True:
         # Save game history for resuming if finished loading from previous failed attempt
@@ -301,6 +302,8 @@ def mainGame(movementInfo):
         crashTest = checkCrash({'x': playerx, 'y': playery, 'index': playerIndex},
                                upperPipes, lowerPipes)
         if crashTest[0]:
+            if print_score:
+                print('')
             Agent.update_qvalues(score)
             if Agent.train:
                 print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, epsilon: {Agent.epsilon}, "
@@ -327,10 +330,31 @@ def mainGame(movementInfo):
             pipeMidPos = pipe['x'] + IMAGES['pipe'][0].get_width() / 2
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
+                # Print every 10k scores
+                if score % 10000 == 0:
+                    print_score = True  # need to start a newline before future prints
+                    print(f"\r {'Training' if Agent.train else 'Running'} agent, "
+                          f"score reached (nearest 10,000): {score:,}", end="")
+                    # sys.stdout.write('\r' + f" {'Training' if Agent.train else 'Running'} "
+                    #                         f"agent, score reached (nearest 10,000): {score}")
+                    # sys.stdout.flush()
                 # SOUNDS['point'].play()
                 if config['max_score'] and score >= config['max_score']:
+                    if print_score:
+                        print('')
                     Agent.end_episode()
+                    STATE_HISTORY.clear()  # don't resume if max score reached
                     print(f"Max score of {config['max_score']} reached at episode {Agent.episode}...")
+                    return {
+                        'y': playery,
+                        'groundCrash': crashTest[1],
+                        'basex': basex,
+                        'upperPipes': upperPipes,
+                        'lowerPipes': lowerPipes,
+                        'score': score,
+                        'playerVelY': playerVelY,
+                        # 'playerRot': playerRot
+                    }
 
         # playerIndex basex change
         if (loopIter + 1) % 3 == 0:
@@ -565,5 +589,3 @@ def getHitmask(image):
 
 if __name__ == '__main__':
     main()
-
-# TODO: Resume game from death for rare scenarios
