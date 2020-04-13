@@ -314,8 +314,8 @@ def mainGame(movementInfo):
                 # Managed to pass the difficult pipe
                 if score > current_score:
                     STATE_HISTORY.clear()
-                # Stuck in resume loop
-                if Agent.episode > current_episode + 100:
+                # Stuck in resume loop, or avoid overfitting
+                if Agent.episode > current_episode + 50:
                     STATE_HISTORY.clear()
             return {
                 'y': playery,
