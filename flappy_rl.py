@@ -30,7 +30,7 @@ PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
 BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
-STATE_HISTORY = deque(maxlen=50)
+STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -263,22 +263,24 @@ def mainGame(movementInfo):
     resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
     resume_from = 0
     current_score = STATE_HISTORY[-1][5] if resume_from_history else None  # reset if beats the latest score in history
+    current_episode = STATE_HISTORY[-1][7] if resume_from_history else None  # reset if stuck in resume loop
     print_score = False  # has the current score been printed?
 
     while True:
-        # Save game history for resuming if finished loading from previous failed attempt
-        if resume_from >= initial_len_history:
-            if config['resume_score'] and score >= config['resume_score']:
-                STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
-                                      copy.deepcopy(upperPipes), score, playerIndex])
-        else:
-            if resume_from_history:
+        if resume_from_history:
+            # Load from saved game history
+            if resume_from < initial_len_history:
                 if resume_from == 0:
-                    playerx, playery, playerVelY, lowerPipes, upperPipes, score, playerIndex = \
+                    playerx, playery, playerVelY, lowerPipes, upperPipes, score, playerIndex, episode = \
                         STATE_HISTORY[resume_from]
                 else:
                     lowerPipes, upperPipes = STATE_HISTORY[resume_from][3], STATE_HISTORY[resume_from][4]
                 resume_from += 1
+        else:
+            # Save game history for resuming if new attempt
+            if config['resume_score'] and score >= config['resume_score']:
+                STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
+                                      copy.deepcopy(upperPipes), score, playerIndex, Agent.episode])
 
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -308,9 +310,13 @@ def mainGame(movementInfo):
                 print('')
             Agent.update_qvalues(score)
             print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
-            # Managed to pass the difficult pipe
-            if resume_from_history and score > current_score:
-                STATE_HISTORY.clear()
+            if resume_from_history:  # current_score and current_episode are based on STATE_HISTORY
+                # Managed to pass the difficult pipe
+                if score > current_score:
+                    STATE_HISTORY.clear()
+                # Stuck in resume loop
+                if Agent.episode > current_episode + 100:
+                    STATE_HISTORY.clear()
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
