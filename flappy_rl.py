@@ -31,6 +31,7 @@ BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
+REPLAY_BUFFER = []
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -263,7 +264,6 @@ def mainGame(movementInfo):
     resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
     resume_from = 0
     current_score = STATE_HISTORY[-1][5] if resume_from_history else None  # reset if beats the latest score in history
-    current_episode = STATE_HISTORY[-1][7] if resume_from_history else None  # reset if stuck in resume loop
     print_score = False  # has the current score been printed?
 
     while True:
@@ -308,15 +308,26 @@ def mainGame(movementInfo):
         if crashTest[0]:
             if print_score:
                 print('')
-            Agent.update_qvalues(score)
-            print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
+            if Agent.train:
+                print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, score: {score}, max_score: {Agent.max_score}")
+            else:
+                print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
             if resume_from_history:  # current_score and current_episode are based on STATE_HISTORY
+                REPLAY_BUFFER.append(Agent)
                 # Managed to pass the difficult pipe
                 if score > current_score:
+                    Agent.update_qvalues(score)
                     STATE_HISTORY.clear()
-                # Stuck in resume loop, or avoid overfitting
-                if Agent.episode > current_episode + 50:
+                # Stuck in resume loop, sample to avoid overfitting
+                if len(REPLAY_BUFFER) > 50:
+                    random.shuffle(REPLAY_BUFFER)
+                    for _ in range(20):
+                        temp_agent = REPLAY_BUFFER.pop()
+                        Agent.moves = temp_agent.moves
+                        Agent.update_qvalues(temp_agent.score)
                     STATE_HISTORY.clear()
+            else:
+                Agent.update_qvalues(score)
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],

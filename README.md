@@ -20,6 +20,7 @@ Change the training parameters in [config.py](config.py) and run the [flappy_rl.
 vel is the agent y velocity, and y1 is the y distance between the lower pipes. x0, y0, y1 are calculated from the playerx, playery, and the array of lower pipes
 - States are added to the Q-table as they are encountered rather than initialising a sparse Q-table.
 The initial state is initialised to [0, 0, 0] where the array represents [Q of no action, Q of flap action, Times experienced this state]
+- Alpha (learning date) decay is added to prevent overfitting and reduce the chance of catastrophic forgetting as training continues
 - An epsilon greedy policy to give a chance to explore has been added but commented out. It was found that 
 exploration is not efficient or required for this agent (only 2 possible states, flap or no flap) and environment (repeating)
 - Improved performance by adding functions to reduce the number of moves in memory for updating the Q-table, 

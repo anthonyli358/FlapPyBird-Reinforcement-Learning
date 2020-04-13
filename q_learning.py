@@ -21,7 +21,7 @@ class QLearning:
         self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
-        # self.alpha_decay = 0.000001
+        self.alpha_decay = 0.00003  # 20,000 episodes to fully decay
         # self.epsilon_decay = 0.000005  # 20,000 episodes to not explore anymore
 
         # Save states
@@ -63,7 +63,8 @@ class QLearning:
                     training_state = json.load(f)
                     self.episode = training_state['episodes'][-1]
                     self.scores = training_state['scores']
-                    # self.epsilon -= min(self.epsilon_decay * self.episode, self.epsilon)
+                    self.alpha = max(self.alpha - self.alpha_decay * self.episode, 0.1)
+                    # self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
                     self.max_score = max(self.scores)
             except IOError:
                 pass
@@ -131,9 +132,8 @@ class QLearning:
                                                              max(self.q_values[new_state][0:2]))
 
             # Decay values for convergence
-            # Don't want to decay alpha at a fixed rate so remove for now
-            # if self.alpha > 0:
-            #     self.alpha -= self.alpha_decay
+            if self.alpha > 0.1:
+                self.alpha -= self.alpha_decay
             # if self.epsilon > 0:
             #     self.epsilon -= self.epsilon_decay
 
