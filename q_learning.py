@@ -85,6 +85,7 @@ class QLearning:
             self.previous_state = state  # update the last_state with the current state
 
             # Epsilon greedy policy for action, chance to explore
+            # Remove since exploration is not efficient or required for this agent and environment
             # if random.random() <= self.epsilon:
             #     self.previous_action = random.choice([0, 1])
             #     return self.previous_action

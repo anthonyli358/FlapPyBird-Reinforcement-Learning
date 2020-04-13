@@ -9,8 +9,8 @@ from pygame.locals import *
 
 # Initialize Q-learning agent
 
-from q_learning import QLearning
 from config import config
+from q_learning import QLearning
 
 Agent = QLearning(config['train'])
 
@@ -277,7 +277,7 @@ def mainGame(movementInfo):
                     lowerPipes, upperPipes = STATE_HISTORY[resume_from][3], STATE_HISTORY[resume_from][4]
                 resume_from += 1
         else:
-            # Save game history for resuming if new attempt
+            # Save game history for resuming
             if config['resume_score'] and score >= config['resume_score']:
                 STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
                                       copy.deepcopy(upperPipes), score, playerIndex, Agent.episode])
