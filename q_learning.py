@@ -22,7 +22,7 @@ class QLearning:
 
         # Stabilize and converge to optimal policy
         self.alpha_decay = 0.00003  # 20,000 episodes to fully decay
-        # self.epsilon_decay = 0.000005  # 20,000 episodes to not explore anymore
+        # self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
 
         # Save states
         self.episode = 0

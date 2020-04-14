@@ -271,7 +271,7 @@ def mainGame(movementInfo):
             # Load from saved game history
             if resume_from < initial_len_history:
                 if resume_from == 0:
-                    playerx, playery, playerVelY, lowerPipes, upperPipes, score, playerIndex, episode = \
+                    playerx, playery, playerVelY, lowerPipes, upperPipes, score, playerIndex = \
                         STATE_HISTORY[resume_from]
                 else:
                     lowerPipes, upperPipes = STATE_HISTORY[resume_from][3], STATE_HISTORY[resume_from][4]
@@ -280,7 +280,7 @@ def mainGame(movementInfo):
             # Save game history for resuming
             if config['resume_score'] and score >= config['resume_score']:
                 STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
-                                      copy.deepcopy(upperPipes), score, playerIndex, Agent.episode])
+                                      copy.deepcopy(upperPipes), score, playerIndex])
 
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -308,26 +308,28 @@ def mainGame(movementInfo):
         if crashTest[0]:
             if print_score:
                 print('')
+            if resume_from_history:  # current_score is based on STATE_HISTORY
+                # Managed to pass the difficult pipe
+                if score > current_score:
+                    Agent.update_qvalues(score)
+                else:
+                    REPLAY_BUFFER.append(copy.deepcopy(Agent.moves))
+                # Or stuck in resume loop
+                if score > current_score or len(REPLAY_BUFFER) >= 50:
+                    # Update with a sample of the REPLAY_BUFFER (sample to avoid overfitting)
+                    random.shuffle(REPLAY_BUFFER)
+                    for _ in range(5):
+                        if REPLAY_BUFFER:  # don't pop if list is empty
+                            Agent.moves = REPLAY_BUFFER.pop()
+                            Agent.update_qvalues(current_score)
+                    STATE_HISTORY.clear()
+                    REPLAY_BUFFER.clear()
+            else:
+                Agent.update_qvalues(score)
             if Agent.train:
                 print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, score: {score}, max_score: {Agent.max_score}")
             else:
                 print(f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}")
-            if resume_from_history:  # current_score and current_episode are based on STATE_HISTORY
-                REPLAY_BUFFER.append(Agent)
-                # Managed to pass the difficult pipe
-                if score > current_score:
-                    Agent.update_qvalues(score)
-                    STATE_HISTORY.clear()
-                # Stuck in resume loop, sample to avoid overfitting
-                if len(REPLAY_BUFFER) > 50:
-                    random.shuffle(REPLAY_BUFFER)
-                    for _ in range(20):
-                        temp_agent = REPLAY_BUFFER.pop()
-                        Agent.moves = temp_agent.moves
-                        Agent.update_qvalues(temp_agent.score)
-                    STATE_HISTORY.clear()
-            else:
-                Agent.update_qvalues(score)
             return {
                 'y': playery,
                 'groundCrash': crashTest[1],
@@ -359,6 +361,7 @@ def mainGame(movementInfo):
                         print('')
                     Agent.end_episode(score)
                     STATE_HISTORY.clear()  # don't resume if max score reached
+                    REPLAY_BUFFER.clear()
                     print(f"Max score of {config['max_score']} reached at episode {Agent.episode}...")
                     return {
                         'y': playery,
