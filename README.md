@@ -20,7 +20,7 @@ The agent was initially trained for around 10,000 episodes without any explorati
 
 Slowly but surely the agent is learning.
 
-<p align="center">
+<p align="left">
     <img src="results/training_values_logy.png" alt="training_logy" width="600"/> 
 </p>
 
@@ -35,7 +35,7 @@ Upon passing the difficult scenario, upon failure it restarts from the beginning
 
 Load the Q-table and continue from the initial training but with experience replay.
 
-<p align="center">
+<p align="left">
     <img src="results/training_values_resume_catastrophic_forgetting_logy.png" alt="training_forget_logy" width="600"/> 
 </p>
 
@@ -52,7 +52,7 @@ In addition, the number of attempts to be considered stuck in a loop is reduced 
 The Q-table is updated from this in a mini-batch fashion, sampling 5 of attempts remaining once the agent has overcome the scenario or is considered stuck in a reply loop. 
 To avoid overfitting the agent doesn't replay the scenario until success, and the resume score is set to a high value (100,000 in this case) so as not to overfit more commonly encountered scenarios. 
 
-<p align="center">
+<p align="left">
     <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="600"/> 
 </p>
 
@@ -63,7 +63,7 @@ Whilst futher time is not spent training this agent, it could be expected that t
 
 We now try freshly trained agent introducing the exploration rate epsilon that gives a chance to explore until it decays from 0.1 to 0 after 10,000 episodes, and alpha decay which decays alpha from 0.7 to 0.1 after 20,000 episodes from the beginning of training.
 
-<p align="center">
+<p align="left">
     <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="600"/> 
 </p>
 
