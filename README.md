@@ -99,8 +99,8 @@ This is a high score close to the default maximum training value of 10 million, 
 ## Getting Started
 
 Added modules:
-- [anaysis.py](analysis.py) Analysis file for investigating agent performance
-- [config.py](config.py) Config file for changing the agent training parameters
+- [anaysis.py](analysis.py): Analysis file for investigating agent performance
+- [config.py](config.py): Config file for changing the agent training parameters
 - [flappy_rl.py](flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
 - [q_learning.py](q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
 
