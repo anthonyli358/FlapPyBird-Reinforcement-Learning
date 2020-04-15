@@ -4,8 +4,8 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 ## Results
 
-The reward function is to penalise -1000 for a death and 0 otherwise, such that the agent is able to learn to perform better than the finite value setting a positive reward would give (e.g. rewarding +1 for a score increase means the agent would maximise the chance of getting more than 1000). 
-Through undertaking this project the most difficult part was defining a good reward function and how this links to the agent learning alongside other techniques.
+The reward function penalises -1000 for a death and 0 otherwise, such that the agent focuses on not dying. This make the agent goal to get as high a score as possible vs e.g. naively rewarding +1 for a score increase which means the agent would only maximise the chance of getting more than 1000. 
+Through undertaking this project the most difficult part was defining a good reward function and how this links to the agent learning.
 
 The score rolling mean is averaged over a window of 50 using [numpy.convolve](https://docs.scipy.org/doc/numpy/reference/generated/numpy.convolve.html) and `mode='same'` to keep boundary effects visible.
 
@@ -56,28 +56,39 @@ To avoid overfitting the agent doesn't replay the scenario until success, and th
     <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="600"/> 
 </p>
 
-This agent is almost able to reach a score of 10 million. Although a drop in performance is observed as training continues past episode 10,000, it is able to recover from forgetting and overfitting. 
-Whilst futher time is not spent training this agent, it could be expected that the agent performance would oscillate as it unlearns and relearns the optimal actions to take, but not completely forgetting how to reach the optimum as we saw in catastrophic forgetting. However, as alpha continues to decay this should eventually enable the agent to remain stable around its maximum score.
+This agent is almost able to reach a score of 10 million. Although a drop in performance is observed as training continues past episode 10,000, it is able to recover from this initial forgetting. 
+Whilst futher time is not spent training this agent, it could be expected that the agent performance would oscillate as it unlearns and relearns the optimal actions to take, and that it wouldn't completely forget how to reach the optimum as we saw in catastrophic forgetting. As alpha continues to decay this should eventually enable the agent to remain stable around its maximum score.
 
 ### Epsilon Greedy Policy
 
-We now try freshly trained agent introducing the exploration rate epsilon that gives a chance to explore until it decays from 0.1 to 0 after 10,000 episodes, and alpha decay which decays alpha from 0.7 to 0.1 after 20,000 episodes from the beginning of training.
+We now try freshly trained agent, introducing the exploration rate epsilon that gives a chance to explore a random action until it decays from 0.1 to 0 after 10,000 episodes, and alpha decay which decays alpha from 0.7 to 0.1 after 20,000 episodes.
 
 <p align="left">
     <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="600"/> 
 </p>
 
 Due to the alpha and epsilon decay, this agent learns slower than the initial training but is much more stable once it has reached its optimum performance just below 1 million. 
-This maximum score is lower than we experienced without the exploration permitted by implementing an epsilon greedy policy, perhaps due to alpha decaying during exploration, such that when the agent has almost completed its exploration period it is difficult for it to learn more. For this agent (only 2 possible states, flap or no flap) and environment (repeating) it is likely that it is the alpha decay and not the ability to explore offering the stability observed.
+This maximum score is lower than we experienced without exploration, perhaps due alpha decaying during training such that by the time agent has almost completed its exploration period it is difficult for it to learn more. 
+For this agent (only 2 possible states of flap or no flap) and environment (repeating), it is likely that it is the alpha decay and not the ability to explore providing the stability observed.
 
 ### Validation
 
 From above we can see the final best performing agent was trained with experience replay and a replay buffer. 
-Validation of agent performance was performed for 100 runs.
+Agent performance was validated over 25 runs.
 
-- Stability: 
-- Average score: 
-- Maximum score: 
+<p align="left">
+    <img src="results/validation_resume_logy.png" alt="validation_resume_logy" width="600"/> 
+</p>
+
+The agent performs well, consistently passing 100,000 and reaching a maximum score above 5 million. 
+It is able to pass most situations but is unable to live forever when more difficult scenarios appear, meaning it sometimes dies quite early on. 
+
+- Stability: The coefficient of variation (standard deviation / mean) is 0.967.
+This is expected since in a random environment the agent can only be fully stable once it can overcome every scenario and never die.
+- Average score: The average score is 2,001,434.
+This is a strong score for the agent to consistently be able to reach, surpassing any human play.
+- Maximum score: The maximum score reached in 25 runs is 6,720,279.
+This is a high score close to the default maximum training value of 10 million, again surpassing any human play.
 
 ### Future Work
 
@@ -103,7 +114,8 @@ vel is the agent y velocity, and y1 is the y distance between the lower pipes. x
 - States are added to the Q-table as they are encountered rather than initialising a sparse Q-table.
 The initial state is initialised to [0, 0, 0] where the array represents [Q of no action, Q of flap action, Times experienced this state]
 - Alpha (learning date) decay is added to prevent overfitting and reduce the chance of catastrophic forgetting as training continues
-- An epsilon greedy policy to give a chance to explore has been added
+- An epsilon greedy policy to give a chance to explore has been added but commented out. It was found that 
+exploration is not efficient or required for this agent (only 2 possible states, flap or no flap) and environment (repeating)
 - Improved performance by adding functions to reduce the number of moves in memory for updating the Q-table, 
 and to update the Q-table and end the episode if the maximum score is reached (default 10 million)
 

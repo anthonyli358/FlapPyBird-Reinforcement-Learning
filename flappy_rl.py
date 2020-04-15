@@ -1,7 +1,6 @@
 from itertools import cycle
 from collections import deque
 import copy
-import json
 import random
 import sys
 import pygame
@@ -32,7 +31,6 @@ BASEY = SCREENHEIGHT * 0.79
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
 REPLAY_BUFFER = []
-VALIDATION = {'episodes': [], 'scores': [], 'max_scores': []}
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -288,8 +286,6 @@ def mainGame(movementInfo):
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 if print_score:
                     print('')
-                with open("data/validation.json", "w") as f:
-                    json.dump(VALIDATION, f)
                 Agent.save_qvalues()
                 Agent.save_training_states()
                 pygame.quit()
@@ -330,8 +326,6 @@ def mainGame(movementInfo):
                     REPLAY_BUFFER.clear()
             else:
                 Agent.update_qvalues(score)  # only updates if training by default
-                VALIDATION['episodes'].append(copy.deepcopy(Agent.episode))
-                VALIDATION['scores'].append(score)
             if Agent.train:
                 print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, score: {score}, max_score: {Agent.max_score}")
             else:
@@ -466,8 +460,6 @@ def showGameOverScreen(crashInfo):
     while True:
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-                with open("data/validation.json", "w") as f:
-                    json.dump(VALIDATION, f)
                 Agent.save_qvalues()
                 Agent.save_training_states()
                 pygame.quit()

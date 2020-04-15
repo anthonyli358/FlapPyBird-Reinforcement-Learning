@@ -1,6 +1,6 @@
 import json
 import numpy as np
-from typing import List, Dict, Tuple
+from typing import Dict, List
 import matplotlib.pyplot as plt
 
 
@@ -16,7 +16,7 @@ def load_data(filename: str) -> dict:
     return training_state
 
 
-def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=False) -> None:
+def plot_performance(agent_states: Dict[str, List], window=50, xlim=None, ylim=None, logy=False) -> None:
     """Plot the training performance."""
     episodes, scores, max_scores = agent_states['episodes'], agent_states['scores'], agent_states['max_scores']
     fig, ax = plt.subplots()
@@ -45,4 +45,4 @@ def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=F
 if __name__ == '__main__':
     filename = 'validation_resume'
     agent_performance = load_data(filename)
-    plot_performance(agent_performance, logy=True)
+    plot_performance(agent_performance, window=3, logy=True)
