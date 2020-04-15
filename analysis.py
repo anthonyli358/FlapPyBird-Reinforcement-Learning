@@ -20,11 +20,11 @@ def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=F
     """Plot the training performance."""
     episodes, scores, max_scores = agent_states['episodes'], agent_states['scores'], agent_states['max_scores']
     f, ax = plt.subplots()
-    plt.ylabel('Score', fontsize=12)
-    plt.xlabel('Episode', fontsize=12)
+    plt.ylabel('Score', fontsize=16)
+    plt.xlabel('Episode', fontsize=16)
     if logy:
         ax.set_yscale('log')
-        plt.ylabel('log(Score)', fontsize=12)
+        plt.ylabel('log(Score)', fontsize=14)
         scores = [x+1 for x in scores]
         max_scores = [x+1 for x in max_scores]
     plt.scatter(episodes, scores, label='scores', color='b', s=3)
@@ -35,7 +35,9 @@ def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=F
         plt.xlim(xlim)
     if ylim:
         plt.ylim(ylim)
-    plt.legend(loc='upper left', fontsize=10)
+    ax.tick_params(axis="x", labelsize=12)
+    ax.tick_params(axis="y", labelsize=12)
+    plt.legend(loc='upper left', fontsize=14)
     plt.tight_layout()
     plt.show()
 

@@ -21,11 +21,10 @@ The agent was initially trained for around 10,000 episodes without any explorati
 Slowly but surely the agent is learning.
 
 <p align="left">
-    <img src="results/training_values.png" alt="training" width="400"/> 
-    <img src="results/training_values_logy.png" alt="training_logy" width="400"/> 
+    <img src="results/training_values_logy.png" alt="training_logy" width="600"/> 
 </p>
 
-After around 10,000 episodes the agent is almost able to reach a score of 1 million. Log the y-axis so that the rolling increase in score can be seen more clearly.
+After around 10,000 episodes the agent is almost able to reach a score of 1 million. The y-axis has been logged so that the rolling increase in score can be seen more clearly.
 
 ### Experience Replay: Catastrophic Forgetting
 
