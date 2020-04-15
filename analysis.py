@@ -19,7 +19,7 @@ def load_data(filename: str) -> dict:
 def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=False) -> None:
     """Plot the training performance."""
     episodes, scores, max_scores = agent_states['episodes'], agent_states['scores'], agent_states['max_scores']
-    f, ax = plt.subplots()
+    fig, ax = plt.subplots()
     plt.ylabel('Score', fontsize=16)
     plt.xlabel('Episode', fontsize=16)
     if logy:
@@ -38,11 +38,11 @@ def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=F
     ax.tick_params(axis="x", labelsize=12)
     ax.tick_params(axis="y", labelsize=12)
     plt.legend(loc='upper left', fontsize=14)
-    plt.tight_layout()
+    fig.tight_layout()
     plt.show()
 
 
 if __name__ == '__main__':
-    filename = 'training_values_resume'
+    filename = 'validation_resume'
     agent_performance = load_data(filename)
     plot_performance(agent_performance, logy=True)

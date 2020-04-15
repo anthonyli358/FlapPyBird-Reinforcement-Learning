@@ -21,7 +21,7 @@ The agent was initially trained for around 10,000 episodes without any explorati
 Slowly but surely the agent is learning.
 
 <p align="left">
-    <img src="results/training_values_logy.png" alt="training_logy" width="600"/> 
+    <img src="results/training_values_logy.png" alt="training_logy" width="800"/> 
 </p>
 
 After around 10,000 episodes the agent is almost able to reach a score of 1 million. The y-axis has been logged so that the rolling increase in score can be seen more clearly.
@@ -36,7 +36,7 @@ Upon passing the difficult scenario, upon failure it restarts from the beginning
 Load the Q-table and continue from the initial training but with experience replay.
 
 <p align="left">
-    <img src="results/training_values_resume_catastrophic_forgetting_logy.png" alt="training_forget_logy" width="600"/> 
+    <img src="results/training_values_resume_catastrophic_forgetting_logy.png" alt="training_forget_logy" width="800"/> 
 </p>
 
 There is an initial improvement in agent learning as it encounters difficult scenarios more often, but its performance quickly drops and remains below the peak reached. 
@@ -53,7 +53,7 @@ The Q-table is updated from this in a mini-batch fashion, sampling 5 of attempts
 To avoid overfitting the agent doesn't replay the scenario until success, and the resume score is set to a high value (100,000 in this case) so as not to overfit more commonly encountered scenarios. 
 
 <p align="left">
-    <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="600"/> 
+    <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="800"/> 
 </p>
 
 This agent is almost able to reach a score of 10 million. Although a drop in performance is observed as training continues past episode 10,000, it is able to recover from forgetting and overfitting. 
@@ -64,7 +64,7 @@ Whilst futher time is not spent training this agent, it could be expected that t
 We now try freshly trained agent introducing the exploration rate epsilon that gives a chance to explore until it decays from 0.1 to 0 after 10,000 episodes, and alpha decay which decays alpha from 0.7 to 0.1 after 20,000 episodes from the beginning of training.
 
 <p align="left">
-    <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="600"/> 
+    <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="800"/> 
 </p>
 
 Due to the alpha and epsilon decay, this agent learns slower than the initial training but is much more stable once it has reached its optimum performance just below 1 million. 
