@@ -133,9 +133,9 @@ class QLearning:
 
             # Decay values for convergence
             if self.alpha > 0.1:
-                self.alpha -= self.alpha_decay
+                self.alpha = max(self.alpha_decay - self.alpha_decay, 0.1)
             # if self.epsilon > 0:
-            #     self.epsilon -= self.epsilon_decay
+            #     self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
 
             # Don't need to reset previous action or state since this doesn't matter for all the beginning states
             # Although wikipedia mentions a reset of initial conditions tends to predict human behaviour more accurately

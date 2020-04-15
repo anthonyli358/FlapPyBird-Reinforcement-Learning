@@ -1,11 +1,11 @@
 from itertools import cycle
 from collections import deque
 import copy
+import json
 import random
 import sys
 import pygame
 from pygame.locals import *
-
 
 # Initialize Q-learning agent
 
@@ -32,6 +32,7 @@ BASEY = SCREENHEIGHT * 0.79
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
 REPLAY_BUFFER = []
+VALIDATION = {'episodes': [], 'scores': [], 'max_scores': []}
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -261,7 +262,8 @@ def mainGame(movementInfo):
     # If history is less than 20 frames this isn't enough for the bird to learn from (loop of dying) so clear the queue
     if len(STATE_HISTORY) < 20:
         STATE_HISTORY.clear()
-    resume_from_history, initial_len_history = len(STATE_HISTORY) > 0, len(STATE_HISTORY)
+    resume_from_history = len(STATE_HISTORY) > 0 if Agent.train else None  # only resume if training
+    initial_len_history = len(STATE_HISTORY)
     resume_from = 0
     current_score = STATE_HISTORY[-1][5] if resume_from_history else None  # reset if beats the latest score in history
     print_score = False  # has the current score been printed?
@@ -278,14 +280,16 @@ def mainGame(movementInfo):
                 resume_from += 1
         else:
             # Save game history for resuming
-            if config['resume_score'] and score >= config['resume_score']:
-                STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
-                                      copy.deepcopy(upperPipes), score, playerIndex])
+            if Agent.train and config['resume_score'] and score >= config['resume_score']:  # only save if training
+                    STATE_HISTORY.append([playerx, playery, playerVelY, copy.deepcopy(lowerPipes),
+                                          copy.deepcopy(upperPipes), score, playerIndex])
 
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 if print_score:
                     print('')
+                with open("data/validation.json", "w") as f:
+                    json.dump(VALIDATION, f)
                 Agent.save_qvalues()
                 Agent.save_training_states()
                 pygame.quit()
@@ -325,7 +329,9 @@ def mainGame(movementInfo):
                     STATE_HISTORY.clear()
                     REPLAY_BUFFER.clear()
             else:
-                Agent.update_qvalues(score)
+                Agent.update_qvalues(score)  # only updates if training by default
+                VALIDATION['episodes'].append(copy.deepcopy(Agent.episode))
+                VALIDATION['scores'].append(score)
             if Agent.train:
                 print(f"Episode: {Agent.episode}, alpha: {Agent.alpha}, score: {score}, max_score: {Agent.max_score}")
             else:
@@ -460,6 +466,8 @@ def showGameOverScreen(crashInfo):
     while True:
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                with open("data/validation.json", "w") as f:
+                    json.dump(VALIDATION, f)
                 Agent.save_qvalues()
                 Agent.save_training_states()
                 pygame.quit()

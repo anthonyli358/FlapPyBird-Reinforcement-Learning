@@ -4,9 +4,38 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 ## Results
 
+### Initial Training
+
+The agent was initially trained for around 100,000 episodes without any exploration and the learning rate alpha constant. The reward function is to penalise -1000 for a death and 0 otherwise, such that the agent is able to learn to perform better than the finite value setting a positive reward would give (e.g. rewarding +1 for a score increase means the agent would maximise the chance of getting more than 1000). Through undertaking this project the most difficult part was defining a good reward function and how this links to the agent learning alongside other techniques.
+
+
+
+### Experience Replay: Catastrophic Forgetting
+
+Although the initial training performed well, it was very slow to improve further - it takes a very long time for it to reach a scenario it fails at. By introducting experience replay the agent can attempt the difficult scenario multiples times to attempt to overcome it. The lenght of replay was set to 70 (the distance between pipes), and it tries until it passes the difficult scenario or appears to be stuck in a resume loop (100 attempts). Upon passing the difficult scenario, upon failure it restarts from the beginning to avoid the maximum score reached from continously increasing.
+
+When trying to overcome the rarer scenarios the agent has 'forgotten' what was originally learnt, leading to a drop in agent performance as it fails to return to the previously generalisable action states. This is known as catastrophic forgetting which typically leads to an oscillation in agent performance as it unlearns and relearns the optimal actiosn to take. This is compounded by repeatedly learning from the same scenario failure has also contributed to this, leading to overfitting of the problem.
+
+### Experience Replay: Replay Buffer
+
+To overcome catastrophic forgetting, alpha is decayed as the agent is trained, helping it to retain the information it learn early on whilst still learning from rarer scenarios. In addition, the number of attempts to be considered stuck in a loop is reduced to 50 and during experience replay we create a 'replay buffer' with all the actions taken in the attempts to overcome a scenario. The Q-table is updated from this in a mini-batch fashion, sampling 5 of attempts remaining once the agent has overcome the scenario or is considered stuck in a reply loop. To avoid overfitting the agent doesn't replay the scenario until success.
+
+### Epsilon Greedy Policy
+
+We now try freshly trained agent introducing the exploration rate epsilon that gives a chance to explore until it decays to 0 after 10,000 episodes, and alpha decay which decays alpha to 0.1 after 20,000 episodes from the beginning of training.  
+
+### Validation
+
+### Future Work
+
+- Longer training times, the best performing agent was trained for a total of 15 hours and only reached ... episodes
+- Implement prioritized experience replay
+- Train an agent which never dies in the Flappy Bird environment
+
 ## Getting Started
 
 Added modules:
+- [anaysis.py](analysis.py) Analysis file for investigating agent performance
 - [config.py](config.py) Config file for changing the agent training parameters
 - [flappy_rl.py](flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
 - [q_learning.py](q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
