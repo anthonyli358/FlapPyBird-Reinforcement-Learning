@@ -6,11 +6,12 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 The reward function is to penalise -1000 for a death and 0 otherwise, such that the agent is able to learn to perform better than the finite value setting a positive reward would give (e.g. rewarding +1 for a score increase means the agent would maximise the chance of getting more than 1000). 
 Through undertaking this project the most difficult part was defining a good reward function and how this links to the agent learning alongside other techniques.
+
 The score rolling mean is averaged over a window of 50 using [numpy.convolve](https://docs.scipy.org/doc/numpy/reference/generated/numpy.convolve.html) and `mode='same'` to keep boundary effects visible.
 
 ### Initial Training
 
-The agent was initially trained for around 100,000 episodes without any exploration and the learning rate alpha kept constant at 0.7. 
+The agent was initially trained for around 10,000 episodes without any exploration and the learning rate alpha kept constant at 0.7. 
 
 <p align="left">
     <img src="results/training_values_1000.png" alt="training_1000" width="400"/> 
@@ -24,7 +25,7 @@ Slowly but surely the agent is learning.
     <img src="results/training_values_logy.png" alt="training_logy" width="400"/> 
 </p>
 
-After around 10,000 episodes the agent is almost able to reach a score of 1 million. Log the y-axis so that the increase in score can be seen more clearly.
+After around 10,000 episodes the agent is almost able to reach a score of 1 million. Log the y-axis so that the rolling increase in score can be seen more clearly.
 
 ### Experience Replay: Catastrophic Forgetting
 
@@ -54,18 +55,18 @@ The Q-table is updated from this in a mini-batch fashion, sampling 5 of attempts
 To avoid overfitting the agent doesn't replay the scenario until success, and the resume score is set to a high value (100,000 in this case) so as not to overfit more commonly encountered scenarios. 
 
 <p align="left">
-    <img src="results/training_values_resume.png" alt="training_resume_logy" width="400"/> 
+    <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="600"/> 
 </p>
 
-This agent is almost able to reach a score of 10 million. Although a drop in performance is observed it is able to recover from forgetting and overfitting. 
-Although futher is not spent training this agent, it could be expected that the agent performance would oscillate as it unlearns and relearns the optimal actions to take, but wouldn't completely forget how to reach the optimum as we saw in catastrophic forgetting. However, as alpha continues to decay this should eventually enable the agent to remain stable around its maximum score.
+This agent is almost able to reach a score of 10 million. Although a drop in performance is observed, it is able to recover from forgetting and overfitting. 
+Whilst futher time is not spent training this agent, it could be expected that the agent performance would oscillate as it unlearns and relearns the optimal actions to take, but not completely forgetting how to reach the optimum as we saw in catastrophic forgetting. However, as alpha continues to decay this should eventually enable the agent to remain stable around its maximum score.
 
 ### Epsilon Greedy Policy
 
 We now try freshly trained agent introducing the exploration rate epsilon that gives a chance to explore until it decays from 0.1 to 0 after 10,000 episodes, and alpha decay which decays alpha from 0.7 to 0.1 after 20,000 episodes from the beginning of training.
 
 <p align="left">
-    <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="400"/> 
+    <img src="results/training_values_epsilon_logy.png" alt="training_epsilon_logy" width="600"/> 
 </p>
 
 Due to the alpha and epsilon decay, this agent learns slower than the initial training but is much more stable once it has reached its optimum performance just below 1 million. 
@@ -82,7 +83,7 @@ Validation of agent performance was performed for 100 runs.
 
 ### Future Work
 
-- Longer training times, the best performing agent was trained for a total of 15 hours and only reached 10,674 episodes
+- Longer training times - the best performing agent was trained for a total of 15 hours and only reached 10,674 episodes
 - Implement [prioritized experience replay](https://arxiv.org/abs/1511.05952)
 - Train an agent which never dies in the Flappy Bird environment
 
@@ -106,7 +107,7 @@ The initial state is initialised to [0, 0, 0] where the array represents [Q of n
 - Alpha (learning date) decay is added to prevent overfitting and reduce the chance of catastrophic forgetting as training continues
 - An epsilon greedy policy to give a chance to explore has been added
 - Improved performance by adding functions to reduce the number of moves in memory for updating the Q-table, 
-and to update the Q-table and end the episode if the maximum score is reached (default 10,000,000)
+and to update the Q-table and end the episode if the maximum score is reached (default 10 million)
 
 [flappy_rl.py](flappy_rl.py)
 - Removed sounds, welcome animation, and game over screen to improve performance
