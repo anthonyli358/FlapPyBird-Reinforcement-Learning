@@ -37,11 +37,10 @@ Upon passing the difficult scenario, upon failure it restarts from the beginning
 Load the Q-table and continue from the initial training but with experience replay.
 
 <p align="left">
-    <img src="results/training_values_resume_catastrophic_forgetting_logy.png" alt="training_forget_logy" width="400"/> 
-    <img src="results/training_values_resume_catastrophic_forgetting_logx_logy.png" alt="training_forget_logx_logy" width="400"/> 
+    <img src="results/training_values_resume_catastrophic_forgetting_logy.png" alt="training_forget_logy" width="600"/> 
 </p>
 
-There is an initial improvement in agent learning as it encounters difficult scenarios more often, but its performance quickly drops and remains below the peak reached.
+There is an initial improvement in agent learning as it encounters difficult scenarios more often, but its performance quickly drops and remains below the peak reached. 
 
 When trying to overcome the rarer scenarios the agent has 'forgotten' what was originally learnt, leading to a drop in agent performance as it fails to return to the previously generalisable action states. 
 This is known as catastrophic forgetting which typically leads to an oscillation in agent performance as it unlearns and relearns the optimal actions to take. 
@@ -58,7 +57,7 @@ To avoid overfitting the agent doesn't replay the scenario until success, and th
     <img src="results/training_values_resume_logy.png" alt="training_resume_logy" width="600"/> 
 </p>
 
-This agent is almost able to reach a score of 10 million. Although a drop in performance is observed, it is able to recover from forgetting and overfitting. 
+This agent is almost able to reach a score of 10 million. Although a drop in performance is observed as training continues past episode 10,000, it is able to recover from forgetting and overfitting. 
 Whilst futher time is not spent training this agent, it could be expected that the agent performance would oscillate as it unlearns and relearns the optimal actions to take, but not completely forgetting how to reach the optimum as we saw in catastrophic forgetting. However, as alpha continues to decay this should eventually enable the agent to remain stable around its maximum score.
 
 ### Epsilon Greedy Policy
@@ -70,7 +69,7 @@ We now try freshly trained agent introducing the exploration rate epsilon that g
 </p>
 
 Due to the alpha and epsilon decay, this agent learns slower than the initial training but is much more stable once it has reached its optimum performance just below 1 million. 
-This maximum score is lower than we experienced without the exploration permitted by implementing an epsilon greedy policy, perhaps due to alpha decaying during exploration, such that when the agent has almost completed its exploration period it is difficult for it to learn more. For this agent (only 2 possible states, flap or no flap) and environment (repeating) it is likely that exploration doesn't lead to an eventual increase in performance, and it is the alpha decay offering the stability observed.
+This maximum score is lower than we experienced without the exploration permitted by implementing an epsilon greedy policy, perhaps due to alpha decaying during exploration, such that when the agent has almost completed its exploration period it is difficult for it to learn more. For this agent (only 2 possible states, flap or no flap) and environment (repeating) it is likely that it is the alpha decay and not the ability to explore offering the stability observed.
 
 ### Validation
 

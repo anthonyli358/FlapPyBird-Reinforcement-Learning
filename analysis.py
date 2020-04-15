@@ -16,15 +16,12 @@ def load_data(filename: str) -> dict:
     return training_state
 
 
-def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logx= False, logy=False) -> None:
+def plot_performance(agent_states: dict, window=50, xlim=None, ylim=None, logy=False) -> None:
     """Plot the training performance."""
     episodes, scores, max_scores = agent_states['episodes'], agent_states['scores'], agent_states['max_scores']
     f, ax = plt.subplots()
     plt.ylabel('Score', fontsize=12)
     plt.xlabel('Episode', fontsize=12)
-    if logx:
-        ax.set_xscale('log')
-        plt.xlabel('log(Episode)', fontsize=12)
     if logy:
         ax.set_yscale('log')
         plt.ylabel('log(Score)', fontsize=12)
