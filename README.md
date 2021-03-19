@@ -2,6 +2,10 @@
 
 Exploration implementing reinforcement learning using [Q-learning](https://en.wikipedia.org/wiki/Q-learning) in [Flappy Bird](https://en.wikipedia.org/wiki/Flappy_Bird).
 
+<p align="left">
+    <img src="results/recording_gif.gif" alt="recording_gif" width="300"/>  
+</p>
+
 ## Results
 
 The reward function penalises -1000 for a death and 0 otherwise, such that the agent focuses on not dying. This make the agent goal to get as high a score as possible vs e.g. naively rewarding +1 for a score increase which means the agent would only maximise the chance of getting more than 1000. 
