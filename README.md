@@ -3,7 +3,7 @@
 Exploration implementing reinforcement learning using [Q-learning](https://en.wikipedia.org/wiki/Q-learning) in [Flappy Bird](https://en.wikipedia.org/wiki/Flappy_Bird).
 
 <p align="left">
-    <img src="results/recording_gif.gif" alt="recording_gif" width="300"/>  
+    <img src="results/recording_gif.gif" alt="recording_gif" width="250"/>  
 </p>
 
 ## Results
