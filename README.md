@@ -8,7 +8,7 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 ## Results
 
-The reward function penalises -1000 for a death and 0 otherwise, such that the agent focuses on not dying. This make the agent goal to get as high a score as possible vs e.g. naively rewarding +1 for a score increase which means the agent would only maximise the chance of getting more than 1000. 
+The reward function was defined to penalise -1000 for a death and 0 otherwise, such that the agent's focus is the get as high a score as possible. This ensures that the reward function has sufficient impact each episode vs an implementation where rewarding +1 for a score increase means that penalisation has little to no effect.
 Through undertaking this project the most difficult part was defining a good reward function and how this links to the agent learning.
 
 The score rolling mean is averaged over a window of 50 using [numpy.convolve](https://docs.scipy.org/doc/numpy/reference/generated/numpy.convolve.html) and `mode='same'` to keep boundary effects visible.
@@ -33,9 +33,9 @@ After around 10,000 episodes the agent is almost able to reach a score of 1 mill
 ### Experience Replay: Catastrophic Forgetting
 
 Although the initial training performed well, it was very slow to improve further - it takes a very long time for it to reach a scenario it fails at. 
-By introducting experience replay the agent can attempt the difficult scenario multiples times to attempt to overcome it. 
-The lenght of replay was set to 70 (the distance between pipes), and it tries until it passes the difficult scenario or appears to be stuck in a resume loop (100 attempts). 
-Upon passing the difficult scenario, upon failure it restarts from the beginning to avoid the maximum score reached from continously increasing.
+By introducing experience replay the agent can attempt the difficult scenario multiples times to attempt to overcome it. 
+The length of replay was set to 70 (the distance between pipes), and it tries until it passes the difficult scenario or appears to be stuck in a resume loop (100 attempts). 
+Upon passing the difficult scenario, upon failure it restarts from the beginning to avoid the maximum score reached from continuously increasing.
 
 Load the Q-table and continue from the initial training but with experience replay.
 
