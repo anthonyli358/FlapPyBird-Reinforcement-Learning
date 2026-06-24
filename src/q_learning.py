@@ -1,6 +1,8 @@
 import json
 import random
 
+from config import config
+
 
 class QLearning:
     """
@@ -9,6 +11,7 @@ class QLearning:
     Load the Q-Learning agent Q-table (data/q_values.json) and training states (data/training_values.json) from file .
     To train a new agent specify new file names to load and save to.
     """
+
     def __init__(self, train):
         """
         Initialise the agent
@@ -18,10 +21,10 @@ class QLearning:
         self.discount_factor = 0.95  # q-learning discount factor
         self.alpha = 0.7  # learning rate
         # self.epsilon = 0.1  # chance to explore vs take local optimum
-        self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
+        self.reward = {0: 1, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
-        self.alpha_decay = 0.00003  # 20,000 episodes to fully decay
+        self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
         # self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
 
         # Save states
@@ -33,7 +36,9 @@ class QLearning:
         self.max_score = 0
 
         # Load states, add states to q-table as they are experienced rather than pre-initializing q-table
-        self.q_values = {}  # q-table[state][action] decides which action to take by comparing q-values
+        self.q_values = (
+            {}
+        )  # q-table[state][action] decides which action to take by comparing q-values
         self.load_qvalues()
         self.load_training_states()
 
@@ -41,7 +46,7 @@ class QLearning:
         """Load q values and from json file."""
         print("Loading Q-table states from json file...")
         try:
-            with open("data/q_values_resume.json", "r") as f:
+            with open(config["q_table_file"], "r") as f:
                 self.q_values = json.load(f)
         except IOError:
             self.init_qvalues(self.previous_state)
@@ -52,17 +57,21 @@ class QLearning:
         :param state: current state
         """
         if self.q_values.get(state) is None:
-            self.q_values[state] = [0, 0, 0]  # [Q of no action, Q of flap action, Times experienced this state]
+            self.q_values[state] = [
+                0,
+                0,
+                0,
+            ]  # [Q of no action, Q of flap action, Times experienced this state]
 
     def load_training_states(self):
         """Load current training state from json file."""
         if self.train:
             print("Loading training states from json file...")
             try:
-                with open("data/training_values_resume.json", "r") as f:
+                with open(config["q_table_scores_file"], "r") as f:
                     training_state = json.load(f)
-                    self.episode = training_state['episodes'][-1]
-                    self.scores = training_state['scores']
+                    self.episode = training_state["episodes"][-1]
+                    self.scores = training_state["scores"]
                     self.alpha = max(self.alpha - self.alpha_decay * self.episode, 0.1)
                     # self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
                     self.max_score = max(self.scores)
@@ -81,7 +90,9 @@ class QLearning:
         # store the transition from previous state to current state
         state = self.get_state(x, y, vel, pipe)
         if self.train:
-            self.moves.append((self.previous_state, self.previous_action, state))  # add the experience to history
+            self.moves.append(
+                (self.previous_state, self.previous_action, state)
+            )  # add the experience to history
             self.reduce_moves()
             self.previous_state = state  # update the last_state with the current state
 
@@ -92,7 +103,9 @@ class QLearning:
             #     return self.previous_action
 
         # Best action with respect to current state, default is 0 (do nothing), 1 is flap
-        self.previous_action = 0 if self.q_values[state][0] >= self.q_values[state][1] else 1
+        self.previous_action = (
+            0 if self.q_values[state][0] >= self.q_values[state][1] else 1
+        )
 
         return self.previous_action
 
@@ -127,13 +140,17 @@ class QLearning:
                     last_flap = False
                     high_death_flag = False
 
-                self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
-                                               self.alpha * (curr_reward + self.discount_factor *
-                                                             max(self.q_values[new_state][0:2]))
+                # Penality propagates back through the previous states
+                self.q_values[state][action] = (1 - self.alpha) * (
+                    self.q_values[state][action]
+                ) + self.alpha * (
+                    curr_reward
+                    + self.discount_factor * max(self.q_values[new_state][0:2])
+                )
 
             # Decay values for convergence
             if self.alpha > 0.1:
-                self.alpha = max(self.alpha_decay - self.alpha_decay, 0.1)
+                self.alpha = max(self.alpha - self.alpha_decay, 0.1)
             # if self.epsilon > 0:
             #     self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
 
@@ -161,15 +178,16 @@ class QLearning:
         x0 = pipe0["x"] - x
         y0 = pipe0["y"] - y
         if -50 < x0 <= 0:
-            y1 = pipe1["y"] - y
+            y1 = pipe1["y"] - y  # after through pipe0, update y1 to compare to pipe1
         else:
-            y1 = 0
+            y1 = 0  # ignore y1 until through pipe0
 
         # Evaluate player position compared to pipe
-        if x0 < -40:
+        # Bucketing to higher values to reduce training time, at the loss of accuracy
+        if x0 < -40:  # pipe switch at -50
             x0 = int(x0)
         elif x0 < 140:
-            x0 = int(x0) - (int(x0) % 10)
+            x0 = int(x0) - (int(x0) % 10)  # floor to the nearest 10
         else:
             x0 = int(x0) - (int(x0) % 70)
 
@@ -183,7 +201,9 @@ class QLearning:
         else:
             y1 = int(y1) - (int(y1) % 60)
 
-        state = str(int(x0)) + "_" + str(int(y0)) + "_" + str(int(vel)) + "_" + str(int(y1))
+        state = (
+            str(int(x0)) + "_" + str(int(y0)) + "_" + str(int(vel)) + "_" + str(int(y1))
+        )
         self.init_qvalues(state)
         return state
 
@@ -197,9 +217,12 @@ class QLearning:
             for move in history:
                 state, action, new_state = move
                 # Save q_values with default of 0 reward (bird not yet died)
-                self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
-                                               self.alpha * (self.reward[0] + self.discount_factor *
-                                                             max(self.q_values[new_state][0:2]))
+                self.q_values[state][action] = (1 - self.alpha) * (
+                    self.q_values[state][action]
+                ) + self.alpha * (
+                    self.reward[0]
+                    + self.discount_factor * max(self.q_values[new_state][0:2])
+                )
             self.moves = self.moves[reduce_len:]
 
     def end_episode(self, score):
@@ -212,22 +235,30 @@ class QLearning:
             for move in history:
                 state, action, new_state = move
                 # Save q_values with default of 0 reward (bird not yet died)
-                self.q_values[state][action] = (1 - self.alpha) * (self.q_values[state][action]) + \
-                                               self.alpha * (self.reward[0] + self.discount_factor *
-                                                             max(self.q_values[new_state][0:2]))
+                self.q_values[state][action] = (1 - self.alpha) * (
+                    self.q_values[state][action]
+                ) + self.alpha * (
+                    self.reward[0]
+                    + self.discount_factor * max(self.q_values[new_state][0:2])
+                )
             self.moves = []
 
     def save_qvalues(self):
         """Save q values to json file."""
         if self.train:
             print(f"Saving Q-table with {len(self.q_values.keys())} states to file...")
-            with open("data/q_values_resume.json", "w") as f:
+            with open(config["q_table_file"], "w") as f:
                 json.dump(self.q_values, f)
 
     def save_training_states(self):
         if self.train:
             """Save current training state to json file."""
             print(f"Saving training states with {self.episode} episodes to file...")
-            with open("data/training_values_resume.json", "w") as f:
-                json.dump({'episodes': [i+1 for i in range(self.episode)],
-                           'scores': self.scores}, f)
+            with open(config["q_table_scores_file"], "w") as f:
+                json.dump(
+                    {
+                        "episodes": [i + 1 for i in range(self.episode)],
+                        "scores": self.scores,
+                    },
+                    f,
+                )
