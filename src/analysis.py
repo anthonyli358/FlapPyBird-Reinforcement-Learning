@@ -55,5 +55,8 @@ def plot_performance(
 
 
 if __name__ == "__main__":
-    agent_performance = load_data(config["q_table_scores_file"])
+    if config['train_type'] == 'dqn':
+        agent_performance = load_data(config["dqn_scores_file"])
+    else:
+        agent_performance = load_data(config["q_table_scores_file"])
     plot_performance(agent_performance, window=3, logy=True)
