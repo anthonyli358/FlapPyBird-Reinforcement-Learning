@@ -267,7 +267,8 @@ def mainGame(movementInfo):
 
     # When starting the game, if we have state history to resume from then use it until it passes that pipe
     # If history is less than 20 frames this isn't enough for the bird to learn from (loop of dying) so clear the queue
-    if len(STATE_HISTORY) < 20:
+    # Make this lower so we can learn from early states
+    if len(STATE_HISTORY) <= 2:
         STATE_HISTORY.clear()
     resume_from_history = (
         len(STATE_HISTORY) > 0 if Agent.train else None
@@ -351,27 +352,27 @@ def mainGame(movementInfo):
                 # but starting 70 frames back, epsilon exploration works the best
                 state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
                 retry_num = len(REPLAY_BUFFER) + 1
-                original_alpha = Agent.alpha
-                Agent.alpha = original_alpha * 0.1  # reduce alpha learning in replay buffer
+                # original_alpha = Agent.alpha
+                # Agent.alpha = original_alpha # reduce alpha learning in replay buffer
                 Agent.epsilon = max(0.1, 0.5 / retry_num)
                 print(f"  Resume episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
     
                 if score > current_score:
                     Agent.update_qvalues(score, is_retry=True)
-                    # STATE_HISTORY.clear()  # keep this so it can keep going
+                    # STATE_HISTORY.clear()  # don't clear this so it can keep going
                     REPLAY_BUFFER.clear()
                 else:
                     # Only learn from the last few states before death
-                    full_moves = Agent.moves.copy()
-                    Agent.moves = Agent.moves[-5:]  # just the death region
+                    # full_moves = Agent.moves.copy()
+                    # Agent.moves = Agent.moves[-5:]  # just the death region
                     Agent.update_qvalues(current_score, is_retry=True)
-                    Agent.moves = full_moves  # restore for history
+                    # Agent.moves = full_moves  # restore for history
                     REPLAY_BUFFER.append(True)  # copy.deepcopy(Agent.moves)
                     if len(REPLAY_BUFFER) > REPLAY_BUFFER_MAX:
                         STATE_HISTORY.clear()
                         REPLAY_BUFFER.clear()
                 Agent.epsilon = 0
-                Agent.alpha = original_alpha
+                # Agent.alpha = original_alpha
             else:
                 Agent.update_qvalues(score)  # only updates if training by default
                 if Agent.train:

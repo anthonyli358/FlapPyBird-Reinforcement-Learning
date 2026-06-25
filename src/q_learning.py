@@ -22,7 +22,7 @@ class QLearning:
         self.alpha = 0.7  # learning rate
         self.alpha_min = 0.1
         self.epsilon = 0.1  # chance to explore vs take local optimum
-        self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
+        self.reward = {0: 1, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
         # self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
@@ -245,6 +245,7 @@ class QLearning:
 
     def end_episode(self, score):
         """End the run for this episode."""
+        self.episode += 1
         self.scores.append(score)
         self.max_score = max(score, self.max_score)
         if self.train:

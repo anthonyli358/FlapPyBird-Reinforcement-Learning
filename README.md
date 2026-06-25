@@ -10,12 +10,14 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 Given this problem is theoretically solvable via code, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), parameters, and adjusted what the agent knows about the environment in `get_state()`, but the most important change was the training strategy.
 
-We trained for 10k episodes with a max_score of 10k without replay to avoid overfitting, then 2.5k episodes with replay above 1000 (until it consistently reached the max_score of 10000 around 50% of the time). Then to drill all the cases where it still dies often we drill with a replay above 0 (all cases) for 5k episodes. 
+We trained for 10k episodes with a max_score of 10k without replay to avoid overfitting, then 2.5k episodes with replay above 1000 (until it consistently reached the max_score of 10000 around 50% of the time). Then to drill all the cases where it still dies often we drill with a replay above 0 (all cases) for 2.5k episodes. Then set max_score to 1M and train overnight.
 
 I noticed we died at around x0=30 a lot, meaning the binning was causing issues.
 Also, we use the same state from the replay buffer each time, but we start 70 frames back so that's ok.
 Explore tile coding
 One major issues was learning from failures, instead of epsilon exploration
+
+Learning rate of alpha=0.1 for replays worked well too, better than *0.3 or *0.01.
 
 For other (more complex) problems, a possible reason for failures is that state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
 
