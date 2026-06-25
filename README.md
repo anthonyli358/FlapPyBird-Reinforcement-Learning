@@ -6,6 +6,22 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
     <img src="results/recording_gif.gif" alt="recording_gif" width="275"/>  
 </p>
 
+## 2026 Update
+
+Given this problem is theoretically solvable via code, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), parameters, and adjusted what the agent knows about the environment in `get_state()`, but the most important change was the training strategy.
+
+We trained for 10k episodes with a max_score of 10k without replay to avoid overfitting, then 2.5k episodes with replay above 1000 (until it consistently reached the max_score of 10000 around 50% of the time). Then to drill all the cases where it still dies often we drill with a replay above 0 (all cases) for 5k episodes. 
+
+I noticed we died at around x0=30 a lot, meaning the binning was causing issues.
+Also, we use the same state from the replay buffer each time, but we start 70 frames back so that's ok.
+Explore tile coding
+One major issues was learning from failures, instead of epsilon exploration
+
+For other (more complex) problems, a possible reason for failures is that state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
+
+This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we double the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and learns a smooth decision boundary across the full state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
+
+
 ## Results
 
 The reward function was defined to penalise -1000 for a death and 0 otherwise, such that the agent's focus is the get as high a score as possible. This ensures that the reward function has sufficient impact each episode vs an implementation where rewarding +1 for a score increase means that penalisation has little to no effect.
@@ -103,16 +119,17 @@ This is a high score close to the default maximum training value of 10 million, 
 ## Getting Started
 
 Added modules:
-- [anaysis.py](analysis.py): Analysis file for investigating agent performance
-- [config.py](config.py): Config file for changing the agent training parameters
-- [flappy_rl.py](flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
-- [q_learning.py](q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
+- [anaysis.py](src/__init__.pyanalysis.py): Analysis file for investigating agent performance
+- [config.py](src/config.py): Config file for changing the agent training parameters
+- [flappy_rl.py](src/flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
+- [q_learning.py](src/q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
+- [dqn.py](src/dqn.py): An implementation of a Deep Q-Network for the agent to never die
 
-Change the training parameters in [config.py](config.py) and run the [flappy_rl.py](flappy_rl.py) module.
+Change the training parameters in [config.py](src/config.py) and run the [flappy_rl.py](src/flappy_rl.py) module.
 
 ## Development
 
-[q_learning.py](q_learning.py)
+[q_learning.py](src/q_learning.py)
 - Q-learning is performed based upon the states [x0, y0, vel, y1], where x0 and y0 are the player distances to the next lower pipe, 
 vel is the agent y velocity, and y1 is the y distance between the lower pipes. x0, y0, y1 are calculated from the playerx, playery, and the array of lower pipes
 - States are added to the Q-table as they are encountered rather than initialising a sparse Q-table.
@@ -123,7 +140,7 @@ exploration is not efficient or required for this agent (only 2 possible states,
 - Improved performance by adding functions to reduce the number of moves in memory for updating the Q-table, 
 and to update the Q-table and end the episode if the maximum score is reached (default 10 million)
 
-[flappy_rl.py](flappy_rl.py)
+[flappy_rl.py](src/flappy_rl.py)
 - Removed sounds, welcome animation, and game over screen to improve performance
 - Added the ability to perform runs without game rendering, greatly improving runtime
 - Added the ability to resume the game from 70 frames (distance between pipes) before death

@@ -20,12 +20,14 @@ class QLearning:
         self.train = train  # train or run
         self.discount_factor = 0.95  # q-learning discount factor
         self.alpha = 0.7  # learning rate
-        # self.epsilon = 0.1  # chance to explore vs take local optimum
-        self.reward = {0: 1, 1: -1000}  # reward function, focus on only not dying
+        self.alpha_min = 0.1
+        self.epsilon = 0.1  # chance to explore vs take local optimum
+        self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
-        self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
-        # self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
+        # self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
+        self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
+        self.force_action = None
 
         # Save states
         self.episode = 0
@@ -58,8 +60,8 @@ class QLearning:
         """
         if self.q_values.get(state) is None:
             self.q_values[state] = [
-                0,
-                0,
+                5,
+                5,
                 0,
             ]  # [Q of no action, Q of flap action, Times experienced this state]
 
@@ -72,11 +74,18 @@ class QLearning:
                     training_state = json.load(f)
                     self.episode = training_state["episodes"][-1]
                     self.scores = training_state["scores"]
-                    self.alpha = max(self.alpha - self.alpha_decay * self.episode, 0.1)
-                    # self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
+                    self.update_alpha()
+                    self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
                     self.max_score = max(self.scores)
             except IOError:
                 pass
+    
+    def update_alpha(self):
+        if self.episode <= 15000:
+            self.alpha = 0.7 - (0.6 / 15000) * self.episode
+        else:
+            self.alpha = 0.1 - (0.09 / 10000) * (self.episode - 15000)
+        self.alpha = max(self.alpha, self.alpha_min)
 
     def act(self, x, y, vel, pipe):
         """
@@ -96,11 +105,17 @@ class QLearning:
             self.reduce_moves()
             self.previous_state = state  # update the last_state with the current state
 
+            # Force action from rewind logic (one-shot)
+            if self.force_action is not None:
+                self.previous_action = self.force_action
+                self.force_action = None
+                return self.previous_action
+            
             # Epsilon greedy policy for action, chance to explore
             # Remove since exploration is not efficient or required for this agent and environment
-            # if random.random() <= self.epsilon:
-            #     self.previous_action = random.choice([0, 1])
-            #     return self.previous_action
+            if random.random() <= self.epsilon:
+                self.previous_action = random.choice([0, 1])
+                return self.previous_action
 
         # Best action with respect to current state, default is 0 (do nothing), 1 is flap
         self.previous_action = (
@@ -109,14 +124,15 @@ class QLearning:
 
         return self.previous_action
 
-    def update_qvalues(self, score):
+    def update_qvalues(self, score, is_retry=True):
         """
         Update q values using history.
         :param score: score for this episode
         """
-        self.episode += 1
-        self.scores.append(score)
-        self.max_score = max(score, self.max_score)
+        if is_retry:
+            self.episode += 1
+            self.scores.append(score)
+            self.max_score = max(score, self.max_score)
 
         if self.train:
             history = list(reversed(self.moves))
@@ -147,12 +163,10 @@ class QLearning:
                     curr_reward
                     + self.discount_factor * max(self.q_values[new_state][0:2])
                 )
-
             # Decay values for convergence
-            if self.alpha > 0.1:
-                self.alpha = max(self.alpha - self.alpha_decay, 0.1)
-            # if self.epsilon > 0:
-            #     self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
+            self.update_alpha()
+            if self.epsilon > 0:
+                self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
 
             # Don't need to reset previous action or state since this doesn't matter for all the beginning states
             # Although wikipedia mentions a reset of initial conditions tends to predict human behaviour more accurately
@@ -160,7 +174,9 @@ class QLearning:
 
     def get_state(self, x, y, vel, pipe):
         """
-        Get current state of bird in environment.
+        Get current state of bird in environment. 
+        x1 is always the same.
+        
         :param x: bird x
         :param y: bird y
         :param vel: bird y velocity
@@ -186,6 +202,8 @@ class QLearning:
         # Bucketing to higher values to reduce training time, at the loss of accuracy
         if x0 < -40:  # pipe switch at -50
             x0 = int(x0)
+        elif -40 <= x0 <= 50:  # pipe switch at -50
+            x0 = int(x0) - (int(x0) % 5)
         elif x0 < 140:
             x0 = int(x0) - (int(x0) % 10)  # floor to the nearest 10
         else:
@@ -227,7 +245,6 @@ class QLearning:
 
     def end_episode(self, score):
         """End the run for this episode."""
-        self.episode += 1
         self.scores.append(score)
         self.max_score = max(score, self.max_score)
         if self.train:

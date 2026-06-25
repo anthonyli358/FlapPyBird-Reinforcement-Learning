@@ -34,7 +34,7 @@ BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
-REPLAY_BUFFER = []
+REPLAY_BUFFER, REPLAY_BUFFER_MAX = [], 50
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -225,6 +225,7 @@ def showWelcomeAnimation():
 
 
 def mainGame(movementInfo):
+    global ATTEMPTS_SINCE_REWIND, REWIND_COUNT
 
     # --- REMOVE ANGULAR MOVEMENT AND SOUNDS ---
 
@@ -303,7 +304,7 @@ def mainGame(movementInfo):
             if (
                 config["train_type"] != "dqn"
                 and Agent.train
-                and config["resume_score"]
+                and config["resume_score"] is not None
                 and score >= config["resume_score"]
             ):  # only save if training
                 STATE_HISTORY.append(
@@ -343,34 +344,45 @@ def mainGame(movementInfo):
             {"x": playerx, "y": playery, "index": playerIndex}, upperPipes, lowerPipes
         )
         if crashTest[0]:
-            if print_score:
-                print("")
-            if resume_from_history:  # current_score is based on STATE_HISTORY
-                # Managed to pass the difficult pipe
+            if resume_from_history:
+                # We originally tried 2 approaches here:
+                # 1. Replay buffer with sampling to avoid overfitting or being stuck in a loop
+                # 2. Using epsilon=0.5 (with decay) to explore the action space
+                # but starting 70 frames back, epsilon exploration works the best
+                state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
+                retry_num = len(REPLAY_BUFFER) + 1
+                original_alpha = Agent.alpha
+                Agent.alpha = original_alpha * 0.1  # reduce alpha learning in replay buffer
+                Agent.epsilon = max(0.1, 0.5 / retry_num)
+                print(f"  Resume episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
+    
                 if score > current_score:
-                    Agent.update_qvalues(score)
-                else:
-                    REPLAY_BUFFER.append(copy.deepcopy(Agent.moves))
-                # Or stuck in resume loop
-                if score > current_score or len(REPLAY_BUFFER) >= 50:
-                    # Update with a sample of the REPLAY_BUFFER (sample to avoid overfitting)
-                    random.shuffle(REPLAY_BUFFER)
-                    for _ in range(5):
-                        if REPLAY_BUFFER:  # don't pop if list is empty
-                            Agent.moves = REPLAY_BUFFER.pop()
-                            Agent.update_qvalues(current_score)
-                    STATE_HISTORY.clear()
+                    Agent.update_qvalues(score, is_retry=True)
+                    # STATE_HISTORY.clear()  # keep this so it can keep going
                     REPLAY_BUFFER.clear()
+                else:
+                    # Only learn from the last few states before death
+                    full_moves = Agent.moves.copy()
+                    Agent.moves = Agent.moves[-5:]  # just the death region
+                    Agent.update_qvalues(current_score, is_retry=True)
+                    Agent.moves = full_moves  # restore for history
+                    REPLAY_BUFFER.append(True)  # copy.deepcopy(Agent.moves)
+                    if len(REPLAY_BUFFER) > REPLAY_BUFFER_MAX:
+                        STATE_HISTORY.clear()
+                        REPLAY_BUFFER.clear()
+                Agent.epsilon = 0
+                Agent.alpha = original_alpha
             else:
                 Agent.update_qvalues(score)  # only updates if training by default
-            if Agent.train:
-                print(
-                    f"Episode: {Agent.episode}, alpha: {Agent.alpha}, score: {score}, max_score: {Agent.max_score}"
-                )
-            else:
-                print(
-                    f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}"
-                )
+                if Agent.train:
+                    print(
+                        f"Completed episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}"
+                    )
+                else:
+                    print(
+                        f"Completed episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}"
+                    )
+
             return {
                 "y": playery,
                 "groundCrash": crashTest[1],
@@ -389,10 +401,10 @@ def mainGame(movementInfo):
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
                 score += 1
                 # Print every 10k scores
-                if score % config["print_score"] == 0:
+                if config["print_score"] and score % config["print_score"] == 0:
                     print_score = True  # need to start a newline before future prints
                     print(
-                        f"\r {'Training' if Agent.train else 'Running'} agent, "
+                        f"Episode: {Agent.episode}, {'training' if Agent.train else 'tunning'} agent, "
                         f"score reached (nearest 10,000): {score:,}",
                         end="",
                     )
@@ -401,14 +413,12 @@ def mainGame(movementInfo):
                     # sys.stdout.flush()
                 # SOUNDS['point'].play()
                 if config["max_score"] and score >= config["max_score"]:
-                    if print_score:
-                        print("")
+                    print(
+                        f"Completed episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score} with max score"
+                    )
                     Agent.end_episode(score)
                     STATE_HISTORY.clear()  # don't resume if max score reached
                     REPLAY_BUFFER.clear()
-                    print(
-                        f"Max score of {config['max_score']} reached at episode {Agent.episode}..."
-                    )
                     return {
                         "y": playery,
                         "groundCrash": crashTest[1],

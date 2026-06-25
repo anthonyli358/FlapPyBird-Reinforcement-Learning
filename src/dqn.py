@@ -13,11 +13,11 @@ class QNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(4, 64),
+            nn.Linear(4, 128),
             nn.ReLU(),
-            nn.Linear(64, 64),
+            nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(64, 2),
+            nn.Linear(128, 2),
         )
 
     def forward(self, x):
@@ -26,14 +26,22 @@ class QNetwork(nn.Module):
 
 class DQN:
     def __init__(self, train):
+        """
+        Learning rate: Higher is faster but more likely to miss optima
+        Network size: 4 inputs, 2 outputs - 256 is very precise but longer to train. Higher we probably overfit
+        Discount factor: Higher means values survival further into the future
+        Target update freq: Higher means more stable targets but slower adaptation
+        Batch size: Higher is slower but with smoother gradients
+        """
+
         self.train = train
-        self.discount_factor = 0.95
-        self.alpha = 1e-3  # adam learning rate
+        self.discount_factor = 0.99
+        self.alpha = 1e-4  # adam learning rate
         self.epsilon = 0.01
         self.epsilon_decay = 0.00001
         self.batch_size = 64
-        self.target_update_freq = 1000  # steps between target net sync
-        self.reward = {0: 0.01, 1: -1}
+        self.target_update_freq = 5000  # steps between target net sync
+        self.reward = {0: 0.001, 1: -1}
 
         self.episode = 0
         self.step_count = 0
@@ -80,11 +88,10 @@ class DQN:
         state = self.get_state(x, y, vel, pipe)
 
         if self.train and self.previous_state is not None:
-            self.replay_buffer.append(
-                (self.previous_state, self.previous_action, 0.01, state)
-            )
-            self._train_batch()
+            self.replay_buffer.append((self.previous_state, self.previous_action, 0.001, state))
             self.step_count += 1
+            if self.step_count % 4 == 0:  # train every 4th frame for speed
+                self._train_batch()
             if self.step_count % self.target_update_freq == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
