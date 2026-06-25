@@ -355,13 +355,15 @@ def mainGame(movementInfo):
                 # original_alpha = Agent.alpha
                 # Agent.alpha = original_alpha # reduce alpha learning in replay buffer
                 Agent.epsilon = max(0.1, 0.5 / retry_num)
-                print(f"  Resume episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
+                
     
                 if score > current_score:
+                    print(f"  Completed replay for episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
                     Agent.update_qvalues(score, is_retry=True)
-                    # STATE_HISTORY.clear()  # don't clear this so it can keep going
+                    STATE_HISTORY.clear()  # start a new episode
                     REPLAY_BUFFER.clear()
                 else:
+                    print(f"  Resume episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
                     # Only learn from the last few states before death
                     # full_moves = Agent.moves.copy()
                     # Agent.moves = Agent.moves[-5:]  # just the death region
@@ -377,11 +379,11 @@ def mainGame(movementInfo):
                 Agent.update_qvalues(score)  # only updates if training by default
                 if Agent.train:
                     print(
-                        f"Completed episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}"
+                        f"Episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}"
                     )
                 else:
                     print(
-                        f"Completed episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}"
+                        f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}"
                     )
 
             return {

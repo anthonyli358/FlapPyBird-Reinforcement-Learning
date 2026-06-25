@@ -129,7 +129,7 @@ class QLearning:
         Update q values using history.
         :param score: score for this episode
         """
-        if is_retry:
+        if not is_retry:
             self.episode += 1
             self.scores.append(score)
             self.max_score = max(score, self.max_score)
