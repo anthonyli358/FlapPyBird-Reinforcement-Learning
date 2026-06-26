@@ -33,8 +33,10 @@ PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
 BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
-STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
+STATE_HISTORY = deque(maxlen=140)  # 70 is distance between pipes
 REPLAY_BUFFER, REPLAY_BUFFER_MAX = [], 50
+ATTEMPTS_SINCE_REWIND = 0
+REWIND_COUNT = 0
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -280,6 +282,11 @@ def mainGame(movementInfo):
     )  # reset if beats the latest score in history
     print_score = False  # has the current score been printed?
 
+    if resume_from_history:
+        Agent.epsilon = 0.1
+    elif Agent.train:
+        Agent.epsilon = max(0.1 - Agent.epsilon_decay * Agent.episode, 0.0)  # scheduled (≈0 here)
+
     while True:
         if resume_from_history:
             # Load from saved game history
@@ -346,39 +353,21 @@ def mainGame(movementInfo):
         )
         if crashTest[0]:
             if resume_from_history:
-                # We originally tried 2 approaches here:
-                # 1. Replay buffer with sampling to avoid overfitting or being stuck in a loop
-                # 2. Using epsilon=0.5 (with decay) to explore the action space
-                # but starting 70 frames back, epsilon exploration works the best
                 state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
-                retry_num = len(REPLAY_BUFFER) + 1
-                # original_alpha = Agent.alpha
-                # Agent.alpha = 0.01  # reduce alpha learning in replay buffer
-                Agent.epsilon = 0.2
-                
-                if score > current_score:  # learn from successful cases
-                    print(f"  Completed replay for episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
+                if score > current_score:
+                    print(f"  Cleared wall @ ep {Agent.episode}, score {score}, "
+                          f"attempt {ATTEMPTS_SINCE_REWIND + 1}, state {state}")
                     Agent.update_qvalues(score, is_retry=True)
-                    STATE_HISTORY.clear()  # start a new episode
+                    STATE_HISTORY.clear()
                     REPLAY_BUFFER.clear()
+                    ATTEMPTS_SINCE_REWIND = 0
+                    REWIND_COUNT += 1
                 else:
-                    print(f"  Resume episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
-                    # Only learn from the last few states before death
-                    # full_moves = Agent.moves.copy()
-                    # Agent.moves = Agent.moves[-5:]  # just the death region
+                    ATTEMPTS_SINCE_REWIND += 1
+                    print(f"  Resume @ ep {Agent.episode}, score {score}, "
+                          f"attempt {ATTEMPTS_SINCE_REWIND}, eps {Agent.epsilon:.2f}, state {state}")
                     # Agent.update_qvalues(current_score, is_retry=True)
-                    # Agent.moves = full_moves  # restore for history
-                    REPLAY_BUFFER.append(copy.deepcopy(Agent.moves))  # copy.deepcopy(Agent.moves)
-                    if len(REPLAY_BUFFER) > REPLAY_BUFFER_MAX:
-                        random.shuffle(REPLAY_BUFFER)
-                        for _ in range(5):
-                            if REPLAY_BUFFER:  # don't pop if list is empty
-                                Agent.moves = REPLAY_BUFFER.pop()
-                                Agent.update_qvalues(current_score, is_retry=True)
-                        STATE_HISTORY.clear()
-                        REPLAY_BUFFER.clear()
-                Agent.epsilon = 0
-                # Agent.alpha = original_alpha
+                    # STATE_HISTORY retained → next game rewinds to the same point
             else:
                 Agent.update_qvalues(score)  # only updates if training by default
                 if Agent.train:

@@ -137,7 +137,7 @@ class QLearning:
         if self.train:
             history = list(reversed(self.moves))
             # Flag if the bird died in the top pipe, don't flap if this is the case
-            high_death_flag = True if int(history[0][2].split("_")[1]) > 100 else False
+            high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
             t, last_flap = 0, True
             for move in history:
                 t += 1
