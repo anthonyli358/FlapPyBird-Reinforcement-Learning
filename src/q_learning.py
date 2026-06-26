@@ -124,7 +124,7 @@ class QLearning:
 
         return self.previous_action
 
-    def update_qvalues(self, score, is_retry=True):
+    def update_qvalues(self, score, is_retry=False):
         """
         Update q values using history.
         :param score: score for this episode
@@ -132,12 +132,12 @@ class QLearning:
         if not is_retry:
             self.episode += 1
             self.scores.append(score)
-            self.max_score = max(score, self.max_score)
+        self.max_score = max(score, self.max_score)
 
         if self.train:
             history = list(reversed(self.moves))
             # Flag if the bird died in the top pipe, don't flap if this is the case
-            high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
+            high_death_flag = True if int(history[0][2].split("_")[1]) > 100 else False
             t, last_flap = 0, True
             for move in history:
                 t += 1

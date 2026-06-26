@@ -353,11 +353,10 @@ def mainGame(movementInfo):
                 state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
                 retry_num = len(REPLAY_BUFFER) + 1
                 # original_alpha = Agent.alpha
-                # Agent.alpha = original_alpha # reduce alpha learning in replay buffer
-                Agent.epsilon = max(0.1, 0.5 / retry_num)
+                # Agent.alpha = 0.01  # reduce alpha learning in replay buffer
+                Agent.epsilon = 0.2
                 
-    
-                if score > current_score:
+                if score > current_score:  # learn from successful cases
                     print(f"  Completed replay for episode: {Agent.episode} at score: {score}, attempt: {retry_num}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.2f}, state: {state}")
                     Agent.update_qvalues(score, is_retry=True)
                     STATE_HISTORY.clear()  # start a new episode
@@ -367,10 +366,15 @@ def mainGame(movementInfo):
                     # Only learn from the last few states before death
                     # full_moves = Agent.moves.copy()
                     # Agent.moves = Agent.moves[-5:]  # just the death region
-                    Agent.update_qvalues(current_score, is_retry=True)
+                    # Agent.update_qvalues(current_score, is_retry=True)
                     # Agent.moves = full_moves  # restore for history
-                    REPLAY_BUFFER.append(True)  # copy.deepcopy(Agent.moves)
+                    REPLAY_BUFFER.append(copy.deepcopy(Agent.moves))  # copy.deepcopy(Agent.moves)
                     if len(REPLAY_BUFFER) > REPLAY_BUFFER_MAX:
+                        random.shuffle(REPLAY_BUFFER)
+                        for _ in range(5):
+                            if REPLAY_BUFFER:  # don't pop if list is empty
+                                Agent.moves = REPLAY_BUFFER.pop()
+                                Agent.update_qvalues(current_score, is_retry=True)
                         STATE_HISTORY.clear()
                         REPLAY_BUFFER.clear()
                 Agent.epsilon = 0
