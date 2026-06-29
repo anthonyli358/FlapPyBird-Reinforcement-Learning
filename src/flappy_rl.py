@@ -365,9 +365,10 @@ def mainGame(movementInfo):
                     REPLAY_BUFFER.append((copy.deepcopy(Agent.moves), score))  # copy.deepcopy(Agent.moves)
                     if len(REPLAY_BUFFER) > MAX_ATTEMPTS:
                         for _ in range(REPLAY_BATCH_SIZE):
-                            moves, ep_score = random.choice(REPLAY_BUFFER)
-                            Agent.moves = moves
-                            Agent.update_qvalues(ep_score, is_retry=True)
+                            batch = random.sample(REPLAY_BUFFER, min(REPLAY_BATCH_SIZE, len(REPLAY_BUFFER)))
+                            for moves, ep_score in batch:
+                                Agent.moves = moves
+                                Agent.update_qvalues(ep_score, is_retry=True)
                         STATE_HISTORY.clear()
                         REPLAY_BUFFER.clear()
                         ATTEMPTS_SINCE_REWIND = 0
