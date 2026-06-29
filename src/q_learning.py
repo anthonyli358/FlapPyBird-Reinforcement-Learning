@@ -26,7 +26,7 @@ class QLearning:
 
         # Stabilize and converge to optimal policy
         # self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
-        self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
+        self.epsilon_decay = 0.0001  # 1,000 episodes to not explore anymore
         self.force_action = None
 
         # Save states
@@ -81,10 +81,10 @@ class QLearning:
                 pass
     
     def update_alpha(self):
-        if self.episode <= 15000:
-            self.alpha = 0.7 - (0.6 / 15000) * self.episode
+        if self.episode <= 10000:
+            self.alpha = 0.7 - (0.6 / 10000) * self.episode
         else:
-            self.alpha = 0.1 - (0.09 / 10000) * (self.episode - 15000)
+            self.alpha = 0.1 - (0.09 / 10000) * (self.episode - 10000)
         self.alpha = max(self.alpha, self.alpha_min)
 
     def act(self, x, y, vel, pipe):
@@ -131,14 +131,7 @@ class QLearning:
                         (already reversed so the terminal/death move is index 0)
         :param penalise_death: apply the directional death penalty
         :param count_visits: increment the per-state visit counter (q_values[state][2])
-
-        Directional credit: a high death (hit the top pipe, y0 > 120) was caused
-        by flapping, so we only penalise flaps; a low death (fell into the ground
-        or bottom pipe) was caused by not flapping, so we only penalise noflaps.
-        This avoids penalising the correct recovery action (e.g. a noflap while
-        coasting up into the top pipe, where flapping would only make it worse).
         """
-        # Action that was wrong for this death direction
         # Flag if the bird died in the top pipe, don't flap if this is the case
         high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
         t, last_flap = 0, True
