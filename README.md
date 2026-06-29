@@ -8,24 +8,13 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 ## 2026 Update
 
-Given this problem is theoretically solvable via code, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), parameters, and adjusted what the agent knows about the environment in `get_state()`, but the most important change was the training strategy.
+Given this problem is theoretically with perfect state representation and sufficient exploration, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), hyperparameters, some different approaches to experience replay, and adjusted what the agent knows about the environment in `get_state()` but without much success. One possible improvement could simply be higher training times since I only trained for 1-2 hours usually.
 
-We trained for 10k episodes with a max_score of 10k without replay to avoid overfitting, then 2.5k episodes with replay above 1000 (until it consistently reached the max_score of 10000 around 50% of the time). Then to drill all the cases where it still dies often we drill with a replay above 0 (all cases) for 2.5k episodes. Then set max_score to 1M and train overnight.
+Another possible reason for failures is that whilst state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
 
-I noticed we died at around x0=30 a lot, meaning the binning was causing issues.
-Also, we use the same state from the replay buffer each time, but we start 70 frames back so that's ok.
-Explore tile coding
-One major issues was learning from failures, instead of epsilon exploration
+This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we multiply the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and approximates a continuous decision function across the entire state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
 
-Learning rate of alpha=0.1 for replays worked well too, better than *0.3 or *0.01.
-
-For other (more complex) problems, a possible reason for failures is that state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
-
-This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we double the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and learns a smooth decision boundary across the full state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
-
-```bash
-uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-```
+This seemed more stable with death states but with very high training times. I tried with CUDA but due to the model being smaller GPU training overhead (kernel launch, copy) was slower than CPU training. I installed PyTorch with CUDA support using  `uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126`. 
 
 ## Results
 

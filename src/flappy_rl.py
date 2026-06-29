@@ -347,8 +347,8 @@ def mainGame(movementInfo):
             {"x": playerx, "y": playery, "index": playerIndex}, upperPipes, lowerPipes
         )
         if crashTest[0]:
+            state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
             if resume_from_history:
-                state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
                 if score > current_score or ATTEMPTS_SINCE_REWIND >= MAX_ATTEMPTS:
                     print_str = 'Gave up' if ATTEMPTS_SINCE_REWIND >= MAX_ATTEMPTS else 'Cleared'
                     print(f"  {print_str} wall @ ep {Agent.episode}, score {score}, "
@@ -376,11 +376,11 @@ def mainGame(movementInfo):
                 Agent.update_qvalues(score)  # only updates if training
                 if Agent.train:
                     print(
-                        f"Episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}"
+                        f"Episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}, state {state}"
                     )
                 else:
                     print(
-                        f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}"
+                        f"Episode: {Agent.episode}, score: {score}, max_score: {Agent.max_score}, state {state}"
                     )
 
             return {
