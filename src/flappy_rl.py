@@ -360,6 +360,8 @@ def mainGame(movementInfo):
                     ATTEMPTS_SINCE_REWIND = 0
                 else:
                     ATTEMPTS_SINCE_REWIND += 1
+                    # TODO: Divide Agent.alpha by batch size
+                    # TODO: Try batch learning from batches of attempts
                     print(f"  Resume @ ep {Agent.episode}, score {score}, "
                           f"attempt {ATTEMPTS_SINCE_REWIND}, eps {Agent.epsilon:.2f}, state {state}")
                     REPLAY_BUFFER.append((copy.deepcopy(Agent.moves), score))  # copy.deepcopy(Agent.moves)
