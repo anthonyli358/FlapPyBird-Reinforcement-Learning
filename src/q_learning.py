@@ -22,6 +22,7 @@ class QLearning:
         self.alpha = 0.7  # learning rate
         self.alpha_min = 0.1
         self.epsilon = 0.1  # chance to explore vs take local optimum
+        self.epsilon_min = 0
         self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
@@ -75,7 +76,7 @@ class QLearning:
                     self.episode = training_state["episodes"][-1]
                     self.scores = training_state["scores"]
                     self.update_alpha()
-                    self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
+                    self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, self.epsilon_min)
                     self.max_score = max(self.scores)
             except IOError:
                 pass
@@ -124,13 +125,11 @@ class QLearning:
 
         return self.previous_action
 
-    def _backward_pass(self, history, penalise_death=True, count_visits=True):
+    def _backward_pass(self, history):
         """
         Single reverse Bellman sweep over a move history.
         :param history: list of (state, action, new_state), most-recent-first
                         (already reversed so the terminal/death move is index 0)
-        :param penalise_death: apply the directional death penalty
-        :param count_visits: increment the per-state visit counter (q_values[state][2])
         """
         # Flag if the bird died in the top pipe, don't flap if this is the case
         high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
@@ -172,13 +171,11 @@ class QLearning:
 
         if self.train and self.moves:
             # Real update over the full history (counts visits once)
-            self._backward_pass(
-                list(reversed(self.moves)), penalise_death=True, count_visits=True
-            )
+            self._backward_pass(list(reversed(self.moves)))
             # Decay values for convergence
             self.update_alpha()
             if self.epsilon > 0:
-                self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
+                self.epsilon = max(self.epsilon - self.epsilon_decay, self.epsilon_min)
             self.moves = []  # clear history after updating strategies
 
     def get_state(self, x, y, vel, pipe):
@@ -241,11 +238,7 @@ class QLearning:
         """
         if len(self.moves) > reduce_len:
             # Neutral sweep (reward 0): bird hasn't died, just flushing old history
-            self._backward_pass(
-                list(reversed(self.moves[:reduce_len])),
-                penalise_death=False,
-                count_visits=False,
-            )
+            self._backward_pass(list(reversed(self.moves[:reduce_len])))
             self.moves = self.moves[reduce_len:]
 
     def end_episode(self, score):
@@ -255,9 +248,7 @@ class QLearning:
         self.max_score = max(score, self.max_score)
         if self.train and self.moves:
             # Neutral sweep (reward 0): survived to max score, no penalty
-            self._backward_pass(
-                list(reversed(self.moves)), penalise_death=False, count_visits=False
-            )
+            self._backward_pass(list(reversed(self.moves)))
             self.moves = []
 
     def save_qvalues(self):

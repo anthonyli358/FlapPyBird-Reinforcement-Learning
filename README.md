@@ -23,6 +23,9 @@ For other (more complex) problems, a possible reason for failures is that state 
 
 This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we double the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and learns a smooth decision boundary across the full state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
 
+```bash
+uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+```
 
 ## Results
 

@@ -39,9 +39,10 @@ class DQN:
         self.alpha = 1e-4  # adam learning rate
         self.epsilon = 0.01
         self.epsilon_decay = 0.00001
+        self.epsilon_min = 0.00
         self.batch_size = 64
         self.target_update_freq = 5000  # steps between target net sync
-        self.reward = {0: 0.001, 1: -1}
+        self.reward = {0: 0, 1: -1}
 
         self.episode = 0
         self.step_count = 0
@@ -54,6 +55,7 @@ class DQN:
 
         # Networks
         # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # print(f"Running on {self.device}")
         self.device = torch.device("cpu")  # tiny model, use cpu to avoid copying
         self.policy_net = QNetwork().to(self.device)
         self.target_net = QNetwork().to(self.device)
@@ -110,15 +112,13 @@ class DQN:
 
         return self.previous_action
 
-    def update_qvalues(self, score):
+    def update_qvalues(self, score, is_retry=False):
         """
         History replay buffer removed
-
-        Args:
-            score (_type_): _description_
         """
-        self.episode += 1
-        self.scores.append(score)
+        if not is_retry:
+            self.episode += 1
+            self.scores.append(score)
         self.max_score = max(score, self.max_score)
 
         if not self.train:
@@ -133,7 +133,7 @@ class DQN:
         self.previous_state = None  # reset for next episode
 
         if self.epsilon > 0:
-            self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
+            self.epsilon = max(self.epsilon - self.epsilon_decay, self.epsilon_min)
 
     def _train_batch(self):
         if len(self.replay_buffer) < self.batch_size:
@@ -199,7 +199,7 @@ class DQN:
                     training_state = json.load(f)
                 self.episode = training_state["episodes"][-1]
                 self.scores = training_state["scores"]
-                self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, 0)
+                self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, self.epsilon_min)
                 self.max_score = max(self.scores)
             except (IOError, FileNotFoundError):
                 pass

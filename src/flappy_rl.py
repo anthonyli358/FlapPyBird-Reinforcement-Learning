@@ -35,8 +35,8 @@ BASEY = SCREENHEIGHT * 0.79
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
 REPLAY_BUFFER, REPLAY_BUFFER_MAX = [], 50
-ATTEMPTS_SINCE_REWIND, MAX_ATTEMPTS = 0, 5000
-REWIND_COUNT = 0
+ATTEMPTS_SINCE_REWIND, MAX_ATTEMPTS = 0, 200
+REPLAY_BATCH_SIZE = 5
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -227,7 +227,7 @@ def showWelcomeAnimation():
 
 
 def mainGame(movementInfo):
-    global ATTEMPTS_SINCE_REWIND, REWIND_COUNT
+    global ATTEMPTS_SINCE_REWIND
 
     # --- REMOVE ANGULAR MOVEMENT AND SOUNDS ---
 
@@ -268,9 +268,9 @@ def mainGame(movementInfo):
     playerFlapped = False  # True when player flaps
 
     # When starting the game, if we have state history to resume from then use it until it passes that pipe
-    # If history is less than 20 frames this isn't enough for the bird to learn from (loop of dying) so clear the queue
+    # If history is less than 10 frames this isn't enough for the bird to learn from (loop of dying) so clear the queue
     # Make this lower so we can learn from early states
-    if len(STATE_HISTORY) <= 2:
+    if len(STATE_HISTORY) <= 10:
         STATE_HISTORY.clear()
     resume_from_history = (
         len(STATE_HISTORY) > 0 if Agent.train else None
@@ -281,12 +281,6 @@ def mainGame(movementInfo):
         STATE_HISTORY[-1][5] if resume_from_history else None
     )  # reset if beats the latest score in history
     print_score = False  # has the current score been printed?
-
-    if resume_from_history:
-        Agent.epsilon = 0.1  # greedy during rewind: offline replay flips the policy, not random flaps
-        # config['show_game'] = True
-    elif Agent.train:
-        Agent.epsilon = max(0.1 - Agent.epsilon_decay * Agent.episode, 0.0)  # scheduled (≈0 here)
 
     while True:
         if resume_from_history:
@@ -302,31 +296,31 @@ def mainGame(movementInfo):
                         score,
                         playerIndex,
                     ) = STATE_HISTORY[resume_from]
-                else:
+                else:  # only reload pipes
                     lowerPipes, upperPipes = (
                         STATE_HISTORY[resume_from][3],
                         STATE_HISTORY[resume_from][4],
                     )
                 resume_from += 1
-        else:
-            # Save game history for resuming
-            if (
-                config["train_type"] != "dqn"
-                and Agent.train
-                and config["resume_score"] is not None
-                and score >= config["resume_score"]
-            ):  # only save if training
-                STATE_HISTORY.append(
-                    [
-                        playerx,
-                        playery,
-                        playerVelY,
-                        copy.deepcopy(lowerPipes),
-                        copy.deepcopy(upperPipes),
-                        score,
-                        playerIndex,
-                    ]
-                )
+                
+        # Save game history for resuming
+        if (
+            config["train_type"] != "dqn"
+            and Agent.train
+            and config["resume_score"] is not None
+            and score >= config["resume_score"]
+        ):  # only save if training
+            STATE_HISTORY.append(
+                [
+                    playerx,
+                    playery,
+                    playerVelY,
+                    copy.deepcopy(lowerPipes),
+                    copy.deepcopy(upperPipes),
+                    score,
+                    playerIndex,
+                ]
+            )
 
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -364,15 +358,21 @@ def mainGame(movementInfo):
                     STATE_HISTORY.clear()
                     REPLAY_BUFFER.clear()
                     ATTEMPTS_SINCE_REWIND = 0
-                    REWIND_COUNT += 1
                 else:
                     ATTEMPTS_SINCE_REWIND += 1
-                    Agent.update_qvalues(score, is_retry=True)
                     print(f"  Resume @ ep {Agent.episode}, score {score}, "
                           f"attempt {ATTEMPTS_SINCE_REWIND}, eps {Agent.epsilon:.2f}, state {state}")
+                    REPLAY_BUFFER.append((copy.deepcopy(Agent.moves), score))  # copy.deepcopy(Agent.moves)
+                    if len(REPLAY_BUFFER) > MAX_ATTEMPTS:
+                        for _ in range(REPLAY_BATCH_SIZE):
+                            moves, ep_score = random.choice(REPLAY_BUFFER)
+                            Agent.moves = moves
+                            Agent.update_qvalues(ep_score, is_retry=True)
+                        STATE_HISTORY.clear()
+                        REPLAY_BUFFER.clear()
+                        ATTEMPTS_SINCE_REWIND = 0
                     # STATE_HISTORY retained → next game rewinds to the same point
             else:
-                # Normal death: drill the bottleneck offline so 0/1 deaths self-correct
                 Agent.update_qvalues(score)  # only updates if training
                 if Agent.train:
                     print(
