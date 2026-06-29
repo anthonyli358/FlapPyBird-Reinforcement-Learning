@@ -22,7 +22,7 @@ class QLearning:
         self.alpha = 0.7  # learning rate
         self.alpha_min = 0.1
         self.epsilon = 0.1  # chance to explore vs take local optimum
-        self.reward = {0: 1, 1: -1000}  # reward function, focus on only not dying
+        self.reward = {0: 0, 1: -1000}  # reward function, focus on only not dying
 
         # Stabilize and converge to optimal policy
         # self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
@@ -60,8 +60,8 @@ class QLearning:
         """
         if self.q_values.get(state) is None:
             self.q_values[state] = [
-                5,
-                5,
+                0,
+                0,
                 0,
             ]  # [Q of no action, Q of flap action, Times experienced this state]
 
@@ -124,52 +124,78 @@ class QLearning:
 
         return self.previous_action
 
-    def update_qvalues(self, score, is_retry=False):
+    def _backward_pass(self, history, penalise_death=True, count_visits=True):
+        """
+        Single reverse Bellman sweep over a move history.
+        :param history: list of (state, action, new_state), most-recent-first
+                        (already reversed so the terminal/death move is index 0)
+        :param penalise_death: apply the directional death penalty
+        :param count_visits: increment the per-state visit counter (q_values[state][2])
+
+        Directional credit: a high death (hit the top pipe, y0 > 120) was caused
+        by flapping, so we only penalise flaps; a low death (fell into the ground
+        or bottom pipe) was caused by not flapping, so we only penalise noflaps.
+        This avoids penalising the correct recovery action (e.g. a noflap while
+        coasting up into the top pipe, where flapping would only make it worse).
+        """
+        # Action that was wrong for this death direction
+        # Flag if the bird died in the top pipe, don't flap if this is the case
+        high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
+        t, last_flap = 0, True
+        for move in history:
+            t += 1
+            state, action, new_state = move
+            self.q_values[state][2] += 1  # number of times this state has been seen
+            curr_reward = self.reward[0]
+            # Select reward
+            if t <= 2:
+                # Penalise last 2 states before dying
+                curr_reward = self.reward[1]
+                if action:
+                    last_flap = False
+            elif (last_flap or high_death_flag) and action:
+                # Penalise flapping
+                curr_reward = self.reward[1]
+                last_flap = False
+                high_death_flag = False
+            # Penalty propagates back through the previous states
+            self.q_values[state][action] = (1 - self.alpha) * (
+                self.q_values[state][action]
+            ) + self.alpha * (
+                curr_reward
+                + self.discount_factor * max(self.q_values[new_state][0:2])
+            )
+
+    def update_qvalues(self, score, is_retry=False, replay_k=0, replay_tail=200):
         """
         Update q values using history.
         :param score: score for this episode
+        :param is_retry: rewind retry -> don't advance episode / scores
+        :param replay_k: extra offline reverse sweeps over the death region to
+                         flip the greedy policy at the bottleneck (no exploration)
+        :param replay_tail: number of recent moves the offline sweeps cover
         """
         if not is_retry:
             self.episode += 1
             self.scores.append(score)
         self.max_score = max(score, self.max_score)
 
-        if self.train:
-            history = list(reversed(self.moves))
-            # Flag if the bird died in the top pipe, don't flap if this is the case
-            high_death_flag = True if int(history[0][2].split("_")[1]) > 120 else False
-            t, last_flap = 0, True
-            for move in history:
-                t += 1
-                state, action, new_state = move
-                self.q_values[state][2] += 1  # number of times this state has been seen
-                curr_reward = self.reward[0]
-                # Select reward
-                if t <= 2:
-                    # Penalise last 2 states before dying
-                    curr_reward = self.reward[1]
-                    if action:
-                        last_flap = False
-                elif (last_flap or high_death_flag) and action:
-                    # Penalise flapping
-                    curr_reward = self.reward[1]
-                    last_flap = False
-                    high_death_flag = False
-
-                # Penality propagates back through the previous states
-                self.q_values[state][action] = (1 - self.alpha) * (
-                    self.q_values[state][action]
-                ) + self.alpha * (
-                    curr_reward
-                    + self.discount_factor * max(self.q_values[new_state][0:2])
-                )
+        if self.train and self.moves:
+            # Real update over the full history (counts visits once)
+            self._backward_pass(
+                list(reversed(self.moves)), penalise_death=True, count_visits=True
+            )
+            # Offline experience replay: re-apply the penalty over the death region
+            # K more times so the fatal action's Q drops below the alternative and
+            # the greedy policy flips - deterministic, no environment, no random flaps.
+            if replay_k:
+                tail = list(reversed(self.moves[-replay_tail:]))
+                for _ in range(replay_k):
+                    self._backward_pass(tail, penalise_death=True, count_visits=False)
             # Decay values for convergence
             self.update_alpha()
             if self.epsilon > 0:
                 self.epsilon = max(self.epsilon - self.epsilon_decay, 0)
-
-            # Don't need to reset previous action or state since this doesn't matter for all the beginning states
-            # Although wikipedia mentions a reset of initial conditions tends to predict human behaviour more accurately
             self.moves = []  # clear history after updating strategies
 
     def get_state(self, x, y, vel, pipe):
@@ -231,34 +257,24 @@ class QLearning:
         :param reduce_len: reduce moves in memory if greater than this length, default 1 million
         """
         if len(self.moves) > reduce_len:
-            history = list(reversed(self.moves[:reduce_len]))
-            for move in history:
-                state, action, new_state = move
-                # Save q_values with default of 0 reward (bird not yet died)
-                self.q_values[state][action] = (1 - self.alpha) * (
-                    self.q_values[state][action]
-                ) + self.alpha * (
-                    self.reward[0]
-                    + self.discount_factor * max(self.q_values[new_state][0:2])
-                )
+            # Neutral sweep (reward 0): bird hasn't died, just flushing old history
+            self._backward_pass(
+                list(reversed(self.moves[:reduce_len])),
+                penalise_death=False,
+                count_visits=False,
+            )
             self.moves = self.moves[reduce_len:]
 
     def end_episode(self, score):
-        """End the run for this episode."""
+        """End the run for this episode (reached max score, no death)."""
         self.episode += 1
         self.scores.append(score)
         self.max_score = max(score, self.max_score)
-        if self.train:
-            history = list(reversed(self.moves))
-            for move in history:
-                state, action, new_state = move
-                # Save q_values with default of 0 reward (bird not yet died)
-                self.q_values[state][action] = (1 - self.alpha) * (
-                    self.q_values[state][action]
-                ) + self.alpha * (
-                    self.reward[0]
-                    + self.discount_factor * max(self.q_values[new_state][0:2])
-                )
+        if self.train and self.moves:
+            # Neutral sweep (reward 0): survived to max score, no penalty
+            self._backward_pass(
+                list(reversed(self.moves)), penalise_death=False, count_visits=False
+            )
             self.moves = []
 
     def save_qvalues(self):
