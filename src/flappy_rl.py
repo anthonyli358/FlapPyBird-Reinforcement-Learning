@@ -33,9 +33,9 @@ PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
 BASEY = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
-STATE_HISTORY = deque(maxlen=140)  # 70 is distance between pipes
+STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
 REPLAY_BUFFER, REPLAY_BUFFER_MAX = [], 50
-ATTEMPTS_SINCE_REWIND = 0
+ATTEMPTS_SINCE_REWIND, MAX_ATTEMPTS = 0, 5000
 REWIND_COUNT = 0
 
 # list of all possible players (tuple of 3 positions of flap)
@@ -283,7 +283,8 @@ def mainGame(movementInfo):
     print_score = False  # has the current score been printed?
 
     if resume_from_history:
-        Agent.epsilon = 0.1
+        Agent.epsilon = 0.1  # greedy during rewind: offline replay flips the policy, not random flaps
+        # config['show_game'] = True
     elif Agent.train:
         Agent.epsilon = max(0.1 - Agent.epsilon_decay * Agent.episode, 0.0)  # scheduled (≈0 here)
 
@@ -354,9 +355,11 @@ def mainGame(movementInfo):
         if crashTest[0]:
             if resume_from_history:
                 state = Agent.get_state(playerx, playery, playerVelY, lowerPipes)
-                if score > current_score:
-                    print(f"  Cleared wall @ ep {Agent.episode}, score {score}, "
+                if score > current_score or ATTEMPTS_SINCE_REWIND >= MAX_ATTEMPTS:
+                    print_str = 'Gave up' if ATTEMPTS_SINCE_REWIND >= MAX_ATTEMPTS else 'Cleared'
+                    print(f"  {print_str} wall @ ep {Agent.episode}, score {score}, "
                           f"attempt {ATTEMPTS_SINCE_REWIND + 1}, state {state}")
+                    # Cleared the wall (or gave up): just record the final death, no flip needed
                     Agent.update_qvalues(score, is_retry=True)
                     STATE_HISTORY.clear()
                     REPLAY_BUFFER.clear()
@@ -364,12 +367,13 @@ def mainGame(movementInfo):
                     REWIND_COUNT += 1
                 else:
                     ATTEMPTS_SINCE_REWIND += 1
+                    Agent.update_qvalues(score, is_retry=True)
                     print(f"  Resume @ ep {Agent.episode}, score {score}, "
                           f"attempt {ATTEMPTS_SINCE_REWIND}, eps {Agent.epsilon:.2f}, state {state}")
-                    # Agent.update_qvalues(current_score, is_retry=True)
                     # STATE_HISTORY retained → next game rewinds to the same point
             else:
-                Agent.update_qvalues(score)  # only updates if training by default
+                # Normal death: drill the bottleneck offline so 0/1 deaths self-correct
+                Agent.update_qvalues(score)  # only updates if training
                 if Agent.train:
                     print(
                         f"Episode: {Agent.episode}, alpha: {Agent.alpha:.4f}, epsilon: {Agent.epsilon:.3f}, score: {score}, max_score: {Agent.max_score}"

@@ -26,7 +26,7 @@ class QLearning:
 
         # Stabilize and converge to optimal policy
         # self.alpha_decay = 0.00005  # 12,000 episodes to fully decay
-        self.epsilon_decay = 0.0001  # 1,000 episodes to not explore anymore
+        self.epsilon_decay = 0.00001  # 10,000 episodes to not explore anymore
         self.force_action = None
 
         # Save states
@@ -159,14 +159,11 @@ class QLearning:
                 + self.discount_factor * max(self.q_values[new_state][0:2])
             )
 
-    def update_qvalues(self, score, is_retry=False, replay_k=0, replay_tail=200):
+    def update_qvalues(self, score, is_retry=False):
         """
         Update q values using history.
         :param score: score for this episode
         :param is_retry: rewind retry -> don't advance episode / scores
-        :param replay_k: extra offline reverse sweeps over the death region to
-                         flip the greedy policy at the bottleneck (no exploration)
-        :param replay_tail: number of recent moves the offline sweeps cover
         """
         if not is_retry:
             self.episode += 1
@@ -178,13 +175,6 @@ class QLearning:
             self._backward_pass(
                 list(reversed(self.moves)), penalise_death=True, count_visits=True
             )
-            # Offline experience replay: re-apply the penalty over the death region
-            # K more times so the fatal action's Q drops below the alternative and
-            # the greedy policy flips - deterministic, no environment, no random flaps.
-            if replay_k:
-                tail = list(reversed(self.moves[-replay_tail:]))
-                for _ in range(replay_k):
-                    self._backward_pass(tail, penalise_death=True, count_visits=False)
             # Decay values for convergence
             self.update_alpha()
             if self.epsilon > 0:
