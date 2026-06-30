@@ -14,7 +14,7 @@ Another possible reason for failures is that whilst state aliasing the positions
 
 This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we multiply the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and approximates a continuous decision function across the entire state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
 
-This seemed more stable with death states but with very high training times. I tried with CUDA but due to the model being smaller GPU training overhead (kernel launch, copy) was slower than CPU training. I installed PyTorch with CUDA support using  `uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126`. 
+This seemed more stable with death states but with very high training times. I tried with CUDA but due to the model being smaller GPU training overhead (kernel launch, copy) was slower than CPU training. I installed PyTorch with CUDA support using  `uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126` (https://pytorch.org/get-started/locally/). 
 
 ## Results
 
