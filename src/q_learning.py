@@ -1,4 +1,5 @@
 import json
+import os
 import random
 
 from config import config
@@ -46,10 +47,19 @@ class QLearning:
         self.load_training_states()
 
     def load_qvalues(self):
-        """Load q values and from json file."""
+        """
+        Load q values from json file.
+
+        Loads from `q_table_file` (the base/resume table). In train mode, if a
+        separate `q_table_save_file` exists it is loaded instead to avoid unintended continued runs.
+        """
         print("Loading Q-table states from json file...")
+        path = config["q_table_file"]
+        save = config.get("q_table_save_file")
+        if self.train and save and os.path.exists(save):
+            path = save
         try:
-            with open(config["q_table_file"], "r") as f:
+            with open(path, "r") as f:
                 self.q_values = json.load(f)
         except IOError:
             self.init_qvalues(self.previous_state)
@@ -70,17 +80,24 @@ class QLearning:
         """Load current training state from json file."""
         if self.train:
             print("Loading training states from json file...")
+            path = config["q_table_scores_file"]
+            save = config.get("q_table_scores_save_file")
+            if save and os.path.exists(save):
+                path = save
             try:
-                with open(config["q_table_scores_file"], "r") as f:
+                with open(path, "r") as f:
                     training_state = json.load(f)
                     self.episode = training_state["episodes"][-1]
                     self.scores = training_state["scores"]
                     self.update_alpha()
-                    self.epsilon = max(self.epsilon - self.epsilon_decay * self.episode, self.epsilon_min)
+                    self.epsilon = max(
+                        self.epsilon - self.epsilon_decay * self.episode,
+                        self.epsilon_min,
+                    )
                     self.max_score = max(self.scores)
             except IOError:
                 pass
-    
+
     def update_alpha(self):
         if self.episode <= 10000:
             self.alpha = 0.7 - (0.6 / 10000) * self.episode
@@ -111,7 +128,7 @@ class QLearning:
                 self.previous_action = self.force_action
                 self.force_action = None
                 return self.previous_action
-            
+
             # Epsilon greedy policy for action, chance to explore
             # Remove since exploration is not efficient or required for this agent and environment
             if random.random() <= self.epsilon:
@@ -154,8 +171,7 @@ class QLearning:
             self.q_values[state][action] = (1 - self.alpha) * (
                 self.q_values[state][action]
             ) + self.alpha * (
-                curr_reward
-                + self.discount_factor * max(self.q_values[new_state][0:2])
+                curr_reward + self.discount_factor * max(self.q_values[new_state][0:2])
             )
 
     def update_qvalues(self, score, is_retry=False):
@@ -180,9 +196,9 @@ class QLearning:
 
     def get_state(self, x, y, vel, pipe):
         """
-        Get current state of bird in environment. 
+        Get current state of bird in environment.
         x1 is always the same.
-        
+
         :param x: bird x
         :param y: bird y
         :param vel: bird y velocity
@@ -252,17 +268,28 @@ class QLearning:
             self.moves = []
 
     def save_qvalues(self):
-        """Save q values to json file."""
+        """
+        Save q values to json file.
+
+        Writes to `q_table_save_file` when set, else the traning `q_table_file`
+        to prevent unintended changes to training file.
+        """
         if self.train:
-            print(f"Saving Q-table with {len(self.q_values.keys())} states to file...")
-            with open(config["q_table_file"], "w") as f:
+            path = config.get("q_table_save_file") or config["q_table_file"]
+            print(
+                f"Saving Q-table with {len(self.q_values.keys())} states to {path}..."
+            )
+            with open(path, "w") as f:
                 json.dump(self.q_values, f)
 
     def save_training_states(self):
         if self.train:
             """Save current training state to json file."""
-            print(f"Saving training states with {self.episode} episodes to file...")
-            with open(config["q_table_scores_file"], "w") as f:
+            path = (
+                config.get("q_table_scores_save_file") or config["q_table_scores_file"]
+            )
+            print(f"Saving training states with {self.episode} episodes to {path}...")
+            with open(path, "w") as f:
                 json.dump(
                     {
                         "episodes": [i + 1 for i in range(self.episode)],

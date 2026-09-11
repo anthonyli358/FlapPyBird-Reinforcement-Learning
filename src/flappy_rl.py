@@ -12,6 +12,9 @@ from config import config
 from q_learning import QLearning
 from dqn import DQN
 
+# Shared engine parameters (single source of truth in src/game_params.py)
+import game_params as gp
+
 if config["train_type"] == "dqn":
     Agent = DQN(config["train"])
 else:
@@ -22,15 +25,22 @@ if Agent.train:
 else:
     print("Running agent...")
 
+# Model-based safety shield (guardian) that overwrites agent actions so the bird never dies.
+SHIELD = None
+if config.get("use_shield", True) and not Agent.train:
+    from guardian.shield.realtime import GameAdapter
+
+    SHIELD = GameAdapter()  # loads the bundled kernel.npy
+    print("Safety shield active: bird is immortal (agent proposes, shield guarantees).")
+
 
 # Back to game
 
-FPS = 30
-SCREENWIDTH = 288
-SCREENHEIGHT = 512
-# amount by which base can maximum shift to left
-PIPEGAPSIZE = 100  # gap between upper and lower part of pipe
-BASEY = SCREENHEIGHT * 0.79
+FPS = gp.FPS
+SCREENWIDTH = gp.SCREEN_WIDTH
+SCREENHEIGHT = gp.SCREEN_HEIGHT
+PIPEGAPSIZE = gp.PIPE_GAP  # gap between upper and lower part of pipe
+BASEY = gp.BASE_Y
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 STATE_HISTORY = deque(maxlen=70)  # 70 is distance between pipes
@@ -254,17 +264,17 @@ def mainGame(movementInfo):
         {"x": SCREENWIDTH + 200 + (SCREENWIDTH / 2), "y": newPipe2[1]["y"]},
     ]
 
-    pipeVelX = -4
+    pipeVelX = gp.PIPE_VEL_X
 
     # player velocity, max velocity, downward accleration, accleration on flap
-    playerVelY = -9  # player's velocity along Y, default same as playerFlapped
-    playerMaxVelY = 10  # max vel along Y, max descend speed
-    playerMinVelY = -8  # min vel along Y, max ascend speed
-    playerAccY = 1  # players downward accleration
+    playerVelY = gp.FLAP_ACC  # player's velocity along Y, default same as playerFlapped
+    playerMaxVelY = gp.PLAYER_MAX_VEL_Y  # max vel along Y, max descend speed
+    playerMinVelY = gp.PLAYER_MIN_VEL_Y  # min vel along Y, max ascend speed
+    playerAccY = gp.GRAVITY  # players downward accleration
     # playerRot = 45  # player's rotation
     # playerVelRot = 3  # angular speed
     # playerRotThr = 20  # rotation threshold
-    playerFlapAcc = -9  # players speed on flapping
+    playerFlapAcc = gp.FLAP_ACC  # players speed on flapping
     playerFlapped = False  # True when player flaps
 
     # When starting the game, if we have state history to resume from then use it until it passes that pipe
@@ -337,7 +347,14 @@ def mainGame(movementInfo):
                     # SOUNDS['wing'].play()
 
         # Agent to perform an action (0 is do nothing, 1 is flap)
-        if Agent.act(playerx, playery, playerVelY, lowerPipes):
+        proposal = 1 if Agent.act(playerx, playery, playerVelY, lowerPipes) else 0
+        # The agent proposes; the shield guarantees survival (run mode only).
+        action = (
+            SHIELD.action(playery, playerVelY, lowerPipes, proposal)
+            if SHIELD is not None
+            else proposal
+        )
+        if action:
             if playery > -2 * IMAGES["player"][0].get_height():
                 playerVelY = playerFlapAcc
                 playerFlapped = True
