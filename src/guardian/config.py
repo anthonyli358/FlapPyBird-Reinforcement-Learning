@@ -4,6 +4,9 @@ Central configuration for the guardian shield.
 All quantities being integers helps the shield be exact and lossless.
 """
 
+# Shared engine parameters (single source of truth in src/game_params.py). Import works
+# whether guardian is loaded as top-level ``guardian`` (src on path, e.g. flappy_rl) or
+# as ``src.guardian`` (e.g. ``python -m src.guardian.shield.viability`` from the repo root).
 try:
     import game_params as _gp
 except ModuleNotFoundError:  # loaded as src.guardian.*
@@ -27,7 +30,7 @@ PLAYER_H = _gp.PLAYER_H
 PIPE_W = _gp.PIPE_W
 PIPE_GAP = _gp.PIPE_GAP  # vertical opening between the pipe pair
 
-# --- Geometry derived from the engine ----
+# --- Geometry (derived from the engine) ----
 PIPE_SPACING = _gp.SCREEN_WIDTH // 2  # 144: initial horizontal distance between pipes
 _TOP_MIN = int(_gp.BASE_Y * 0.2)
 _TOP_MAX = _TOP_MIN + int(_gp.BASE_Y * 0.6 - _gp.PIPE_GAP) - 1
