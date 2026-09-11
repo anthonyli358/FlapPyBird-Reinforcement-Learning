@@ -4,9 +4,6 @@ Central configuration for the guardian shield.
 All quantities being integers helps the shield be exact and lossless.
 """
 
-# Shared engine parameters (single source of truth in src/game_params.py). Import works
-# whether guardian is loaded as top-level ``guardian`` (src on path, e.g. flappy_rl) or
-# as ``src.guardian`` (e.g. ``python -m src.guardian.shield.viability`` from the repo root).
 try:
     import game_params as _gp
 except ModuleNotFoundError:  # loaded as src.guardian.*

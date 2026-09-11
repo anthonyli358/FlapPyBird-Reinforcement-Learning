@@ -28,7 +28,7 @@ else:
 # Model-based safety shield (guardian) that overwrites agent actions so the bird never dies.
 SHIELD = None
 if config.get("use_shield", True) and not Agent.train:
-    from guardian.shield.realtime import GameAdapter
+    from guardian.realtime import GameAdapter
 
     SHIELD = GameAdapter()  # loads the bundled kernel.npy
     print("Safety shield active: bird is immortal (agent proposes, shield guarantees).")
