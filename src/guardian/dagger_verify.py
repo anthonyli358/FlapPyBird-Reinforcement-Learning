@@ -1,5 +1,5 @@
 """
-On-policy DAgger (Dataset aggreation0 distillation of the immortal (center-seeking + shield) expert.
+On-policy DAgger (Dataset aggreation distillation of the immortal (center-seeking + shield) expert.
 """
 
 import time

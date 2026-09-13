@@ -8,7 +8,7 @@ Exploration implementing reinforcement learning using [Q-learning](https://en.wi
 
 ## 2026 Update
 
-Given this problem is theoretically with perfect state representation and sufficient exploration, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), hyperparameters, some different approaches to experience replay, and adjusted what the agent knows about the environment in `get_state()` but without much success. One possible improvement could simply be higher training times since I only trained for 1-2 hours usually.
+Given this problem is theoretically solvable with perfect state representation and sufficient exploration, it must be possible to train an agent which never dies. I experimented further with different reward functions (a reward of 1 for increasing score helped the agent to learn much faster), hyperparameters, some different approaches to experience replay, and adjusted what the agent knows about the environment in `get_state()` but without much success. One possible improvement could simply be higher training times since I only trained for 1-2 hours usually.
 
 Another possible reason for failures is that whilst state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
 
@@ -18,7 +18,7 @@ This seemed more stable with death states but the training times were too high t
 
 ### An agent which never dies
 
-Training never fully cracked the "never dies" goal due to rare consecutive-gap scenarios (validation coefficient of variation 0.967). We therefore instead implement an offline viability kernel in [`src/guardian/`](src/guardian/) which acts as a reachability shield for survival states. It overrides proposed actions when they would lead to a death,
+Training never fully cracked the "never dies" goal due to rare consecutive-gap scenarios (validation coefficient of variation 0.967). We therefore instead implement an offline viability kernel in [`src/guardian/`](src/guardian/) which acts as a reachability shield for survival states. It overrides proposed actions when they would lead to a death.
 
 The real game under a random proposal shows the shield overriding the agent's proposal and the bird's live `(velocity, y)` state being forced inside survival states.
 
@@ -26,7 +26,7 @@ The real game under a random proposal shows the shield overriding the agent's pr
     <img src="results/guardian_demo.gif" alt="guardian_demo" width="480"/>
 </p>
 
-This was verified across 6M grames under adversarial proposals always-flap and random actions, as well as the trained agent. This takes the agent from mean ~2M pipes to immortal.
+This was verified across 6M frames under adversarial proposals always-flap and random actions, as well as the trained agent. This takes the agent from mean ~2M pipes to immortal.
 
 <p align="left">
     <img src="results/guardian_survival.png" alt="guardian_survival" width="560"/>
@@ -126,12 +126,12 @@ This is a high score close to the default maximum training value of 10 million, 
 
 - Longer training times - the best performing agent was trained for a total of 15 hours and only reached 10,674 episodes
 - Implement [prioritized experience replay](https://arxiv.org/abs/1511.05952)
-- ~~Train an agent which never dies in the Flappy Bird environment~~ → solved with a model-based safety shield (see [The never-dies agent](#an-agent-which-never-dies) in the 2026 Update).
+- ~~Train an agent which never dies in the Flappy Bird environment~~ → solved with a model-based safety shield (see [An agent which never dies](#an-agent-which-never-dies) in the 2026 Update).
 
 ## Getting Started
 
 Added modules:
-- [anaysis.py](src/__init__.pyanalysis.py): Analysis file for investigating agent performance
+- [analysis.py](src/analysis.py): Analysis file for investigating agent performance
 - [config.py](src/config.py): Config file for changing the agent training parameters
 - [flappy_rl.py](src/flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
 - [q_learning.py](src/q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)

@@ -1,6 +1,6 @@
 from .guardian.viability import build_kernel
-from .guardian.results import main as make_figures
-from .guardian.render_gif import render_demo
+from .guardian.viz.results import main as make_figures
+from .guardian.viz.render_gif import render_demo
 from .guardian.numpy_verify import main as verify_numpy
 from .guardian.dagger_verify import main as verify_dagger
 from .guardian.expert_iteration import main as train_policy
