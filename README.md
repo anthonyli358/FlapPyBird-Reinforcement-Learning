@@ -12,9 +12,27 @@ Given this problem is theoretically with perfect state representation and suffic
 
 Another possible reason for failures is that whilst state aliasing the positions x0, y0, and y1 to improve the training time, we lose information about some possible states. e.g. in certain scenarios a y1 of 22 and 29 could require different moves but are bucketed into the same q-value.
 
-This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we multiply the state space and thus the training time. Thus we instead use a Deep Q-Network (DQN) which takes continuous state values as input and approximates a continuous decision function across the entire state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
+This could be solved by finer binning, but the training time would explode. For each dimension we halve the aliasing error for, we multiply the state space and thus the training time. Thus we can instead use a Deep Q-Network (DQN) which takes continuous state values as input and approximates a continuous decision function across the entire state space. The network learns a function $$f(x_0, y_0, v, y_1) \rightarrow [Q_{\text{no flap}}, Q_{\text{flap}}]$$ such that similar positions take similar actions even if the network hasn't already seen that exact scenario.
 
-This seemed more stable with death states but with very high training times. I tried with CUDA but due to the model being smaller GPU training overhead (kernel launch, copy) was slower than CPU training. I installed PyTorch with CUDA support using  `uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126` (https://pytorch.org/get-started/locally/). 
+This seemed more stable with death states but the training times were too high to complete and evaluate training. I tried with CUDA but due to the model being smaller GPU training overhead (kernel launch, copy) was slower than CPU training (installed [PyTorch with CUDA support](https://pytorch.org/get-started/locally/) using  `uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126` ). 
+
+### An agent which never dies
+
+Training never fully cracked the "never dies" goal due to rare consecutive-gap scenarios (validation coefficient of variation 0.967). We therefore instead implement an offline viability kernel in [`src/guardian/`](src/guardian/) which acts as a reachability shield for survival states. It overrides proposed actions when they would lead to a death,
+
+The real game under a random proposal shows the shield overriding the agent's proposal and the bird's live `(velocity, y)` state being forced inside survival states.
+
+<p align="left">
+    <img src="results/guardian_demo.gif" alt="guardian_demo" width="480"/>
+</p>
+
+This was verified across 6M grames under adversarial proposals always-flap and random actions, as well as the trained agent. This takes the agent from mean ~2M pipes to immortal.
+
+<p align="left">
+    <img src="results/guardian_survival.png" alt="guardian_survival" width="560"/>
+</p>
+
+To try it, turn it on in [config.py](src/config.py) (`'use_shield': True`) and run `python src/flappy_rl.py`. Full details in the [src/guardian/README.md](src/guardian/README.md).
 
 ## Results
 
@@ -108,7 +126,7 @@ This is a high score close to the default maximum training value of 10 million, 
 
 - Longer training times - the best performing agent was trained for a total of 15 hours and only reached 10,674 episodes
 - Implement [prioritized experience replay](https://arxiv.org/abs/1511.05952)
-- Train an agent which never dies in the Flappy Bird environment
+- ~~Train an agent which never dies in the Flappy Bird environment~~ → solved with a model-based safety shield (see [The never-dies agent](#an-agent-which-never-dies) in the 2026 Update).
 
 ## Getting Started
 
@@ -118,6 +136,8 @@ Added modules:
 - [flappy_rl.py](src/flappy_rl.py): [FlapPyBird](https://github.com/sourabhv/FlapPyBird) implementation with agent training/runner code included
 - [q_learning.py](src/q_learning.py): An implementation of a Q-learning agent class made with reference to [rl-flappybird](https://github.com/kyokin78/rl-flappybird)
 - [dqn.py](src/dqn.py): An implementation of a Deep Q-Network for the agent to never die
+- [game_params.py](src/game_params.py): Shared, dependency-free source of truth for engine parameters (screen, physics, geometry)
+- [guardian/](src/guardian/): A model-based safety shield + viability kernel that makes the agent immortal (see its [README](src/guardian/README.md))
 
 Change the training parameters in [config.py](src/config.py) and run the [flappy_rl.py](src/flappy_rl.py) module.
 

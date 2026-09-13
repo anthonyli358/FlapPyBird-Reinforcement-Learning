@@ -446,17 +446,17 @@ def fig_latency(R, frames, seed):
 def fig_survival():
     """Bare trained agent (dies) vs guardian-shielded (never dies)."""
     import json
-    path = os.path.join(_HERE, "..", "..", "data", "validation_resume.json")
+    path = os.path.join(_HERE, "..", "..", "..", "data", "validation_resume.json")
     scores = np.array(sorted(json.load(open(path))["scores"]))
     n = len(scores)
     surv = np.arange(n, 0, -1) / n            # fraction of runs reaching >= score
 
     fig, ax = plt.subplots(figsize=(7, 4.3))
     ax.step(scores, surv, where="post", color=C_BAD, lw=2,
-            label=f"bare Q-agent ({n} runs — every run ends in a death)")
+            label=f"bare Q-agent ({n} runs which die, max 6.72M score)")
     ax.scatter(scores, surv, color=C_BAD, s=14, zorder=5)
     ax.hlines(1.0, scores.min(), 2e7, color=C_OK, lw=2.6,
-              label="guardian-shielded (0 deaths in 6,000,000 frames tested)")
+              label="guardian-shielded (immortal, 6M frames tested)")
     ax.annotate("→ ∞", (1.4e7, 1.0), color="#2f6b28", fontweight="bold", fontsize=11,
                 va="center")
     ax.set_xscale("log")
@@ -464,9 +464,7 @@ def fig_survival():
     ax.set_ylim(0, 1.08)
     ax.set_xlabel("pipes cleared in a run (log scale)")
     ax.set_ylabel("fraction of runs still alive")
-    ax.set_title(f"Why guardian: the bare agent is strong (mean {scores.mean():,.0f}, "
-                 f"max {scores.max():,}) but\nevery run eventually dies — the shield removes the tail entirely",
-                 fontsize=9.5)
+    ax.set_title(f"The guardian makes the bird never die", fontsize=9.5)
     ax.legend(loc="lower left", fontsize=8.5)
     fig.tight_layout()
     out = os.path.join(RESULTS, "guardian_survival.png")
