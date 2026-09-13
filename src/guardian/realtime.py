@@ -133,7 +133,12 @@ class GameAdapter:
                 pipes.append((px, lower_top - C.PIPE_GAP // 2))
         return int(playery), int(player_vel_y), pipes
 
-    def action(self, playery, player_vel_y, lower_pipes, proposal: int) -> int:
-        """Map live states and shield a proposal."""
+    def action(self, playery, player_vel_y, lower_pipes, proposal) -> int:
+        """
+        Map live states and shield a proposal.
+        `proposal` is either an action (0/1) or a callable `f(y, vel, pipes) -> 0/1` (from a distlled net).
+        """
         y, vel, pipes = self.state(playery, player_vel_y, lower_pipes)
+        if callable(proposal):
+            proposal = int(proposal(y, vel, pipes))
         return robust_action(y, vel, pipes, proposal, self.R)
