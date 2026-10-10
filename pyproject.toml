@@ -8,5 +8,5 @@ dependencies = [
     "matplotlib>=3.10.9",
     "numpy>=2.2.6",
     "pygame>=2.6.1",
-    "torch>=2.12.1",
+    "torch>=2.13.0",
 ]
